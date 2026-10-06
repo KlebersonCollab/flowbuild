@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { Handle, Position } from '@vue-flow/core'
 import {
   Zap,
@@ -30,7 +30,12 @@ const registryStore = useRegistryStore()
 const executionStore = useExecutionStore()
 const flowStore = useFlowStore()
 
-const isExpanded = ref(true)
+const isExpanded = computed({
+  get: () => props.data?.expanded !== false,
+  set: (val: boolean) => {
+    flowStore.updateNodeExpanded(props.id, val)
+  }
+})
 
 const definition = computed(() => registryStore.getComponent(props.type))
 const nodeState = computed(() => executionStore.getNodeState(props.id))

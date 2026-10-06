@@ -27,10 +27,8 @@ onMounted(async () => {
   window.addEventListener('keydown', handleKeyDown)
   await registryStore.fetchComponents()
 
-  // If canvas is empty, load the rich HTTP Enrichment template
-  if (flowStore.nodes.length === 0) {
-    flowStore.loadTemplate('http_enrich')
-  }
+  // Restore persisted flow from backend database (or local cache)
+  await flowStore.loadPersistedFlow()
 })
 
 onUnmounted(() => {

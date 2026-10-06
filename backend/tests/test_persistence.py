@@ -11,6 +11,7 @@ def temp_db():
     db = DatabaseManager(db_path=path)
     db.init_db()
     yield db
+    db.close()
     if os.path.exists(path):
         os.remove(path)
 

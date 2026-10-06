@@ -199,6 +199,7 @@ export const useExecutionStore = defineStore('execution', () => {
       logs.value.push(`Execution error: ${err.message}`)
     } finally {
       isRunning.value = false
+      await fetchExecutionHistory(undefined, baseUrl)
     }
   }
 

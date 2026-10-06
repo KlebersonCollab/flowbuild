@@ -11,6 +11,9 @@ from backend.app.components.builtins.triggers import (
     ManualTriggerComponent,
     WebhookTriggerComponent,
 )
+from backend.app.components.builtins.variables import (
+    VariableComponent,
+)
 from backend.app.components.registry import get_registry
 
 
@@ -23,6 +26,7 @@ def register_all_builtins() -> None:
     registry.register(PythonScriptComponent)
     registry.register(JsonTransformComponent)
     registry.register(IfConditionComponent)
+    registry.register(VariableComponent)
 
 
 __all__ = [
@@ -32,6 +36,7 @@ __all__ = [
     "JsonTransformComponent",
     "ManualTriggerComponent",
     "PythonScriptComponent",
+    "VariableComponent",
     "WebhookTriggerComponent",
     "register_all_builtins",
 ]

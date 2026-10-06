@@ -9,14 +9,18 @@ import {
   ChevronDown,
   Terminal,
   Sparkles,
-  FolderGit2
+  FolderGit2,
+  Key
 } from 'lucide-vue-next'
 import { useFlowStore } from '../stores/flowStore'
 import { useExecutionStore } from '../stores/executionStore'
+import { useVariablesStore } from '../stores/variablesStore'
 import FlowsModal from './FlowsModal.vue'
+import VariablesModal from './VariablesModal.vue'
 
 const flowStore = useFlowStore()
 const executionStore = useExecutionStore()
+const varStore = useVariablesStore()
 
 const showTemplatesDropdown = ref(false)
 const isFlowsModalOpen = ref(false)
@@ -88,12 +92,49 @@ function onClearCanvas() {
         <input
           v-model="flowStore.flowName"
           type="text"
-          class="text-sm font-semibold text-[#f7f8f8] bg-transparent border border-transparent hover:border-[#23252a] focus:border-[#5e6ad2] rounded px-2 py-0.5 outline-none transition-colors"
+          class="text-sm font-semibold text-[#f7f8f8] bg-transparent border border-transparent hover:border-[#23252a] focus:border-[#5e6ad2] rounded px-2 py-0.5 outline-none transition-colors max-w-[200px] md:max-w-[260px] truncate"
           title="Clique para renomear o fluxo"
         />
-        <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#141516] text-[#8a8f98] font-mono border border-[#23252a]">
-          v0.2.0 (Langflow Decoupled)
+
+        <!-- Folder & Version Tag -->
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#141516] text-[#8a8f98] font-mono border border-[#23252a] flex items-center space-x-1.5">
+          <span class="text-[#d0d6e0]">📁 {{ flowStore.currentFolder || 'Geral' }}</span>
+          <span class="text-[#3e3e44]">·</span>
+          <span class="text-amber-400/90 font-semibold">{{ flowStore.version || 'v1.0.0' }}</span>
         </span>
+      </div>
+
+      <!-- Environment Switcher (DEV / QA / PRD) -->
+      <div class="flex items-center bg-[#0f1011] rounded-lg p-0.5 border border-[#23252a] text-xs">
+        <button
+          @click="flowStore.setEnvironment('dev')"
+          :class="flowStore.currentEnvironment === 'dev' ? 'bg-emerald-500/20 text-emerald-400 font-semibold shadow-sm border border-emerald-500/30' : 'text-[#8a8f98] hover:text-[#d0d6e0] border border-transparent'"
+          class="px-2.5 py-1 rounded-md transition-all text-[11px] flex items-center space-x-1"
+          title="Ambiente de Desenvolvimento"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>DEV</span>
+        </button>
+
+        <button
+          @click="flowStore.setEnvironment('qa')"
+          :class="flowStore.currentEnvironment === 'qa' ? 'bg-amber-500/20 text-amber-400 font-semibold shadow-sm border border-amber-500/30' : 'text-[#8a8f98] hover:text-[#d0d6e0] border border-transparent'"
+          class="px-2.5 py-1 rounded-md transition-all text-[11px] flex items-center space-x-1"
+          title="Ambiente de Homologação / QA"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          <span>QA</span>
+        </button>
+
+        <button
+          @click="flowStore.setEnvironment('prd')"
+          :class="flowStore.currentEnvironment === 'prd' ? 'bg-[#5e6ad2]/25 text-[#828fff] font-semibold shadow-sm border border-[#5e6ad2]/40' : 'text-[#8a8f98] hover:text-[#d0d6e0] border border-transparent'"
+          class="px-2.5 py-1 rounded-md transition-all text-[11px] flex items-center space-x-1"
+          title="Ambiente de Produção (PRD)"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-[#5e6ad2]"></span>
+          <span>PRD</span>
+        </button>
       </div>
     </div>
 
@@ -161,6 +202,16 @@ function onClearCanvas() {
         <span>Meus Fluxos</span>
       </button>
 
+      <!-- Manage Variables (Global & Flow) -->
+      <button
+        @click="varStore.openModal(flowStore.flowId)"
+        class="text-xs px-3 py-1.5 rounded-md bg-[#0f1011] hover:bg-[#141516] text-[#d0d6e0] hover:text-[#f7f8f8] border border-[#23252a] transition-colors flex items-center space-x-1.5"
+        title="Gerenciar variáveis globais e de fluxo"
+      >
+        <Key class="h-3.5 w-3.5 text-amber-400" />
+        <span>Variáveis</span>
+      </button>
+
       <!-- Import JSON -->
       <button
         @click="onTriggerImport"
@@ -222,5 +273,8 @@ function onClearCanvas() {
 
     <!-- Flows Modal -->
     <FlowsModal :is-open="isFlowsModalOpen" @close="isFlowsModalOpen = false" />
+
+    <!-- Variables Modal -->
+    <VariablesModal :is-open="varStore.isModalOpen" @close="varStore.closeModal()" />
   </header>
 </template>

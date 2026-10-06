@@ -6,6 +6,9 @@ from backend.app.models.flow import (
     NodeData,
     NodeModel,
     NodePosition,
+    VariableCreateRequest,
+    VariableRecord,
+    VariableUpdateRequest,
 )
 
 __all__ = [
@@ -16,4 +19,7 @@ __all__ = [
     "NodeData",
     "NodeModel",
     "NodePosition",
+    "VariableCreateRequest",
+    "VariableRecord",
+    "VariableUpdateRequest",
 ]

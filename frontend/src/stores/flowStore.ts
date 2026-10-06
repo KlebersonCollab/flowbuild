@@ -1,18 +1,49 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { FlowNode, FlowEdge, FlowPosition, FlowModel } from '../types/flow'
+import type { FlowNode, FlowEdge, FlowPosition, FlowModel, Environment, FlowRecordItem } from '../types/flow'
 
 export const useFlowStore = defineStore('flow', () => {
   const flowId = ref<string>('flow-current')
   const flowName = ref<string>('My Automation Workflow')
+  const currentEnvironment = ref<Environment>('dev')
+  const currentFolder = ref<string>('Geral')
+  const version = ref<string>('v1.0.0')
+  const sourceFlowId = ref<string | null>(null)
   const nodes = ref<FlowNode[]>([])
   const edges = ref<FlowEdge[]>([])
   const selectedNodeId = ref<string | null>(null)
+  const isActive = ref<boolean>(true)
+  const savedFlows = ref<FlowRecordItem[]>([])
+  let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null
 
   const selectedNode = computed(() => {
     if (!selectedNodeId.value) return null
     return nodes.value.find((n) => n.id === selectedNodeId.value) || null
   })
+
+  const flowsInCurrentEnvironment = computed(() =>
+    savedFlows.value.filter((f) => (f.environment || 'dev') === currentEnvironment.value)
+  )
+
+  const flowsByFolder = computed(() => {
+    const map: Record<string, FlowRecordItem[]> = {}
+    for (const flow of flowsInCurrentEnvironment.value) {
+      const folderName = flow.folder || 'Geral'
+      if (!map[folderName]) {
+        map[folderName] = []
+      }
+      map[folderName].push(flow)
+    }
+    return map
+  })
+
+  function setEnvironment(env: Environment): void {
+    currentEnvironment.value = env
+  }
+
+  function setFolder(folder: string): void {
+    currentFolder.value = folder
+  }
 
   function addNode(
     type: string,
@@ -30,6 +61,7 @@ export const useFlowStore = defineStore('flow', () => {
     }
     nodes.value.push(newNode)
     selectedNodeId.value = id
+    triggerAutoSave()
     return id
   }
 
@@ -39,6 +71,7 @@ export const useFlowStore = defineStore('flow', () => {
     if (selectedNodeId.value === id) {
       selectedNodeId.value = null
     }
+    triggerAutoSave()
   }
 
   function addEdge(edgeData: {
@@ -56,11 +89,13 @@ export const useFlowStore = defineStore('flow', () => {
       targetHandle: edgeData.targetHandle,
     }
     edges.value.push(newEdge)
+    triggerAutoSave()
     return id
   }
 
   function removeEdge(id: string): void {
     edges.value = edges.value.filter((e) => e.id !== id)
+    triggerAutoSave()
   }
 
   function updateNodeInput(nodeId: string, key: string, value: any): void {
@@ -70,6 +105,23 @@ export const useFlowStore = defineStore('flow', () => {
         node.data.inputs = {}
       }
       node.data.inputs[key] = value
+      triggerAutoSave()
+    }
+  }
+
+  function updateNodePosition(nodeId: string, position: FlowPosition): void {
+    const node = nodes.value.find((n) => n.id === nodeId)
+    if (node) {
+      node.position = { ...position }
+      triggerAutoSave()
+    }
+  }
+
+  function updateNodeExpanded(nodeId: string, expanded: boolean): void {
+    const node = nodes.value.find((n) => n.id === nodeId)
+    if (node) {
+      node.data.expanded = expanded
+      triggerAutoSave()
     }
   }
 
@@ -82,6 +134,10 @@ export const useFlowStore = defineStore('flow', () => {
       id: flowId.value,
       name: name || flowName.value,
       description: description || '',
+      folder: currentFolder.value,
+      environment: currentEnvironment.value,
+      version: version.value,
+      source_flow_id: sourceFlowId.value,
       nodes: JSON.parse(JSON.stringify(nodes.value)),
       edges: JSON.parse(JSON.stringify(edges.value)),
     }
@@ -90,6 +146,12 @@ export const useFlowStore = defineStore('flow', () => {
   function loadFlow(flow: FlowModel): void {
     flowId.value = flow.id
     flowName.value = flow.name
+    currentFolder.value = flow.folder || 'Geral'
+    if (flow.environment) {
+      currentEnvironment.value = flow.environment
+    }
+    version.value = flow.version || 'v1.0.0'
+    sourceFlowId.value = flow.source_flow_id || null
     nodes.value = flow.nodes || []
     edges.value = flow.edges || []
     selectedNodeId.value = null
@@ -205,9 +267,6 @@ export const useFlowStore = defineStore('flow', () => {
     selectedNodeId.value = null
   }
 
-  const isActive = ref<boolean>(true)
-  const savedFlows = ref<any[]>([])
-
   async function fetchSavedFlows(baseUrl: string = 'http://localhost:8000'): Promise<void> {
     try {
       const res = await fetch(`${baseUrl}/api/v1/flows`)
@@ -219,14 +278,20 @@ export const useFlowStore = defineStore('flow', () => {
     }
   }
 
-  async function saveFlowToBackend(active: boolean = true, baseUrl: string = 'http://localhost:8000'): Promise<boolean> {
-    isActive.value = active
-    const payload = toFlowPayload()
+  async function promoteFlow(
+    sourceId: string,
+    targetEnvironment: Environment,
+    targetVersion?: string,
+    baseUrl: string = 'http://localhost:8000'
+  ): Promise<boolean> {
     try {
-      const res = await fetch(`${baseUrl}/api/v1/flows`, {
+      const res = await fetch(`${baseUrl}/api/v1/flows/${sourceId}/promote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flow: payload, is_active: active })
+        body: JSON.stringify({
+          target_environment: targetEnvironment,
+          target_version: targetVersion,
+        }),
       })
       if (res.ok) {
         await fetchSavedFlows(baseUrl)
@@ -238,7 +303,32 @@ export const useFlowStore = defineStore('flow', () => {
     }
   }
 
-  async function deleteSavedFlow(id: string, baseUrl: string = 'http://localhost:8000'): Promise<boolean> {
+  async function saveFlowToBackend(
+    active: boolean = true,
+    baseUrl: string = 'http://localhost:8000'
+  ): Promise<boolean> {
+    isActive.value = active
+    const payload = toFlowPayload()
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/flows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flow: payload, is_active: active }),
+      })
+      if (res.ok) {
+        await fetchSavedFlows(baseUrl)
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+
+  async function deleteSavedFlow(
+    id: string,
+    baseUrl: string = 'http://localhost:8000'
+  ): Promise<boolean> {
     try {
       const res = await fetch(`${baseUrl}/api/v1/flows/${id}`, { method: 'DELETE' })
       if (res.ok) {
@@ -251,20 +341,99 @@ export const useFlowStore = defineStore('flow', () => {
     }
   }
 
+  function saveToLocalStorage(): void {
+    try {
+      const payload = toFlowPayload()
+      localStorage.setItem(
+        'flowbuild_active_flow',
+        JSON.stringify({
+          flow: payload,
+          is_active: isActive.value,
+          timestamp: Date.now(),
+        })
+      )
+    } catch {
+      // Ignore storage errors in test or private mode
+    }
+  }
+
+  function triggerAutoSave(debounceMs: number = 600): void {
+    saveToLocalStorage()
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout)
+    }
+    autoSaveTimeout = setTimeout(() => {
+      saveFlowToBackend(isActive.value)
+    }, debounceMs)
+  }
+
+  async function loadPersistedFlow(baseUrl: string = 'http://localhost:8000'): Promise<boolean> {
+    // 1. Try to fetch saved flows from backend database
+    try {
+      await fetchSavedFlows(baseUrl)
+      if (savedFlows.value && savedFlows.value.length > 0) {
+        const activeRec =
+          savedFlows.value.find((f: any) => f.id === flowId.value) ||
+          savedFlows.value.find((f: any) => f.is_active) ||
+          savedFlows.value[0]
+
+        if (activeRec && activeRec.flow_data && activeRec.flow_data.nodes?.length > 0) {
+          loadFlow(activeRec.flow_data)
+          isActive.value = activeRec.is_active ?? true
+          saveToLocalStorage()
+          return true
+        }
+      }
+    } catch {
+      // Backend not yet ready or offline
+    }
+
+    // 2. Fallback to localStorage cache
+    try {
+      const localStr = localStorage.getItem('flowbuild_active_flow')
+      if (localStr) {
+        const parsed = JSON.parse(localStr)
+        if (parsed?.flow?.nodes?.length > 0) {
+          loadFlow(parsed.flow)
+          isActive.value = parsed.is_active ?? true
+          return true
+        }
+      }
+    } catch {
+      // Ignore parse error
+    }
+
+    // 3. Fallback: Initialize with rich default template
+    loadTemplate('http_enrich')
+    await saveFlowToBackend(true, baseUrl)
+    return false
+  }
+
   return {
     flowId,
     flowName,
+    currentEnvironment,
+    currentFolder,
+    version,
+    sourceFlowId,
     nodes,
     edges,
     selectedNodeId,
     selectedNode,
     isActive,
     savedFlows,
+    flowsInCurrentEnvironment,
+    flowsByFolder,
+    setEnvironment,
+    setFolder,
+    promoteFlow,
     addNode,
     removeNode,
     addEdge,
     removeEdge,
     updateNodeInput,
+    updateNodePosition,
+    updateNodeExpanded,
     selectNode,
     toFlowPayload,
     loadFlow,
@@ -272,5 +441,8 @@ export const useFlowStore = defineStore('flow', () => {
     fetchSavedFlows,
     saveFlowToBackend,
     deleteSavedFlow,
+    triggerAutoSave,
+    saveToLocalStorage,
+    loadPersistedFlow,
   }
 })

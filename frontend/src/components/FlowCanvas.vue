@@ -14,7 +14,26 @@ const flowStore = useFlowStore()
 const registryStore = useRegistryStore()
 const executionStore = useExecutionStore()
 
-const { onConnect, onNodeClick, onPaneClick, project } = useVueFlow()
+const { onConnect, onNodeClick, onPaneClick, onNodeDragStop, project } = useVueFlow()
+
+function handleNodeDragStop(e: any) {
+  if (Array.isArray(e?.nodes)) {
+    for (const n of e.nodes) {
+      if (n?.id && n?.position) {
+        flowStore.updateNodePosition(n.id, { x: n.position.x, y: n.position.y })
+      }
+    }
+  } else {
+    const node = e?.node || e
+    if (node?.id && node?.position) {
+      flowStore.updateNodePosition(node.id, { x: node.position.x, y: node.position.y })
+    }
+  }
+}
+
+if (typeof onNodeDragStop === 'function') {
+  onNodeDragStop(handleNodeDragStop)
+}
 
 // Map all component names to CustomNode
 const nodeTypes = computed(() => {
@@ -114,6 +133,7 @@ function onDrop(event: DragEvent) {
       :node-types="nodeTypes"
       fit-view-on-init
       class="h-full w-full bg-[#010102]"
+      @node-drag-stop="handleNodeDragStop"
     >
       <!-- Canvas Grid Background -->
       <Background :pattern-color="'#18191a'" :gap="24" :size="1" />

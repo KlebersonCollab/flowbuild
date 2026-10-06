@@ -37,6 +37,7 @@ export interface FlowPosition {
 export interface NodeData {
   inputs: Record<string, any>
   label?: string
+  expanded?: boolean
 }
 
 export interface FlowNode {
@@ -44,6 +45,7 @@ export interface FlowNode {
   type: string
   position: FlowPosition
   data: NodeData
+  dimensions?: { width: number; height: number }
 }
 
 export interface FlowEdge {
@@ -54,10 +56,16 @@ export interface FlowEdge {
   targetHandle?: string
 }
 
+export type Environment = 'dev' | 'qa' | 'prd'
+
 export interface FlowModel {
   id: string
   name: string
   description?: string
+  folder?: string
+  environment?: Environment
+  version?: string
+  source_flow_id?: string | null
   nodes: FlowNode[]
   edges: FlowEdge[]
 }
@@ -99,3 +107,30 @@ export interface FlowTemplate {
   description: string
   flow: FlowModel
 }
+
+export interface VariableItem {
+  id: string
+  key: string
+  value: string
+  scope: 'global' | 'flow'
+  flow_id?: string | null
+  environment?: 'dev' | 'qa' | 'prd' | 'all'
+  is_secret?: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface FlowRecordItem {
+  id: string
+  name: string
+  description?: string
+  folder?: string
+  environment?: Environment
+  version?: string
+  source_flow_id?: string | null
+  is_active?: boolean
+  flow_data: FlowModel
+  created_at?: string
+  updated_at?: string
+}
+

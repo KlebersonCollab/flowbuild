@@ -94,8 +94,9 @@ class CronSchedulerService:
             return False
 
     async def _execute_scheduled_flow(self, flow_dict: dict[str, Any]) -> None:
+        import uuid
         flow_id = flow_dict.get("id", "scheduled-flow")
-        exec_id = f"exec-cron-{int(datetime.now().timestamp())}"
+        exec_id = f"exec-cron-{uuid.uuid4().hex[:8]}"
         start_time = datetime.now(timezone.utc).timestamp()
 
         db_manager.record_execution(
@@ -108,22 +109,21 @@ class CronSchedulerService:
 
         try:
             flow_model = FlowModel.model_validate(flow_dict)
-            dag = DAGBuilder.build(flow_model)
-            runner = FlowRunner(dag)
+            runner = FlowRunner(flow_model)
             summary = await runner.execute_flow()
 
             duration_ms = (datetime.now(timezone.utc).timestamp() - start_time) * 1000
             db_manager.update_execution_status(
                 execution_id=exec_id,
-                status=summary.status,
+                status=summary.get("status", "completed"),
                 duration_ms=duration_ms,
                 node_states={
                     nid: {
-                        "status": "completed" if nid in summary.successful_nodes else "failed",
-                        "output": summary.results.get(nid),
-                        "error": summary.errors.get(nid),
+                        "status": "completed" if nid in summary.get("results", {}) else "failed",
+                        "output": summary.get("results", {}).get(nid),
+                        "error": summary.get("errors", {}).get(nid),
                     }
-                    for nid in dag.nodes
+                    for nid in [n.id for n in flow_model.nodes]
                 }
             )
         except Exception as e:

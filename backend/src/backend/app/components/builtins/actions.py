@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any, ClassVar
 
 import httpx
@@ -128,29 +129,30 @@ class PythonScriptComponent(BaseComponent):
         code = inp["code"]
         data = inp["input_data"]
 
-        local_vars: dict[str, Any] = {}
-        # Safe scope
-        global_scope: dict[str, Any] = {
-            "__builtins__": {
-                "len": len,
-                "str": str,
-                "int": int,
-                "float": float,
-                "bool": bool,
-                "list": list,
-                "dict": dict,
-                "range": range,
-                "min": min,
-                "max": max,
-                "sum": sum,
+        def _execute_sync(c: str, d: Any) -> Any:
+            exec_scope: dict[str, Any] = {
+                "__builtins__": {
+                    "len": len,
+                    "str": str,
+                    "int": int,
+                    "float": float,
+                    "bool": bool,
+                    "list": list,
+                    "dict": dict,
+                    "range": range,
+                    "min": min,
+                    "max": max,
+                    "sum": sum,
+                    "__import__": __import__,
+                }
             }
-        }
+            exec(c, exec_scope)  # noqa: S102
+            if "run" not in exec_scope or not callable(exec_scope["run"]):
+                raise ValueError("Script must define a 'run(inputs)' function.")
 
-        exec(code, global_scope, local_vars)  # noqa: S102
-        if "run" not in local_vars or not callable(local_vars["run"]):
-            raise ValueError("Script must define a 'run(inputs)' function.")
+            return exec_scope["run"](d)
 
-        return local_vars["run"](data)
+        return await asyncio.to_thread(_execute_sync, code, data)
 
 
 class JsonTransformComponent(BaseComponent):

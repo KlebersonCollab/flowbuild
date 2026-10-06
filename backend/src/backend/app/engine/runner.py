@@ -1,3 +1,4 @@
+import re
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -14,16 +15,69 @@ class FlowRunner:
         flow: FlowModel,
         registry: ComponentRegistry | None = None,
         frozen_results: dict[str, Any] | None = None,
+        db_manager: Any | None = None,
+        variables: dict[str, Any] | None = None,
+        environment: str | None = None,
     ):
         self.flow = flow
         self.registry = registry or get_registry()
         self.builder = DAGBuilder(flow)
         self.context = ExecutionContext(flow.id)
         self.frozen_results = frozen_results or {}
+        self.db_manager = db_manager
+        self.custom_variables = variables or {}
+        self.environment = environment or getattr(flow, "environment", "dev") or "dev"
 
         # Pre-seed results with frozen outputs
         for nid, val in self.frozen_results.items():
             self.context.set_result(nid, val)
+
+    def _get_variables_map(self) -> dict[str, Any]:
+        var_map: dict[str, Any] = {}
+        mgr = self.db_manager
+        if mgr is None:
+            try:
+                from backend.app.db import db_manager as default_db
+
+                mgr = default_db
+            except Exception:
+                mgr = None
+
+        if mgr and hasattr(mgr, "get_all_resolved_variables"):
+            try:
+                var_map.update(
+                    mgr.get_all_resolved_variables(self.flow.id, environment=self.environment)
+                )
+            except TypeError:
+                try:
+                    var_map.update(mgr.get_all_resolved_variables(self.flow.id))
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
+        var_map.update(self.custom_variables)
+        return var_map
+
+    def _interpolate_value(self, val: Any, var_map: dict[str, Any]) -> Any:
+        if isinstance(val, str):
+
+            def replacer(match: re.Match[str]) -> str:
+                raw_key = match.group(1).strip()
+                if raw_key in var_map:
+                    return str(var_map[raw_key])
+                if "." in raw_key:
+                    stripped_key = raw_key.split(".", 1)[1]
+                    if stripped_key in var_map:
+                        return str(var_map[stripped_key])
+                return match.group(0)
+
+            return re.sub(r"\{\{\s*([a-zA-Z0-9_\.]+)\s*\}\}", replacer, val)
+        elif isinstance(val, dict):
+            return {k: self._interpolate_value(v, var_map) for k, v in val.items()}
+        elif isinstance(val, list):
+            return [self._interpolate_value(item, var_map) for item in val]
+        return val
 
     def _resolve_node_inputs(self, node_id: str) -> dict[str, Any]:
         node = self.builder.get_node(node_id)
@@ -48,6 +102,16 @@ class FlowRunner:
                 # Map into target handle if specified, or source_handle
                 target_key = edge.target_handle or edge.source_handle or "input_data"
                 node_inputs[target_key] = extracted_val
+
+        # Interpolate variables across inputs
+        var_map = self._get_variables_map()
+        interpolated = self._interpolate_value(node_inputs, var_map)
+        if isinstance(interpolated, dict):
+            node_inputs = interpolated
+
+        # Inject context variables and flow id for component-level access
+        node_inputs["_variables"] = var_map
+        node_inputs["_flow_id"] = self.flow.id
 
         return node_inputs
 

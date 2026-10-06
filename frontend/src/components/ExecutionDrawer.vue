@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import {
   Terminal,
   Layers,
@@ -14,7 +14,8 @@ import {
   XCircle,
   Clock,
   RotateCw,
-  Snowflake
+  Snowflake,
+  RefreshCw
 } from 'lucide-vue-next'
 import { useExecutionStore } from '../stores/executionStore'
 import { useFlowStore } from '../stores/flowStore'
@@ -23,6 +24,8 @@ const executionStore = useExecutionStore()
 const flowStore = useFlowStore()
 
 const copied = ref(false)
+const isRefreshingHistory = ref(false)
+let historyPollTimer: ReturnType<typeof setInterval> | null = null
 
 const activeTab = computed({
   get: () => executionStore.activeDrawerTab,
@@ -45,9 +48,50 @@ const completedNodesList = computed(() => {
   })
 })
 
+function startHistoryPolling() {
+  stopHistoryPolling()
+  historyPollTimer = setInterval(async () => {
+    if (isOpen.value && activeTab.value === 'history') {
+      await executionStore.fetchExecutionHistory()
+    }
+  }, 3500)
+}
+
+function stopHistoryPolling() {
+  if (historyPollTimer) {
+    clearInterval(historyPollTimer)
+    historyPollTimer = null
+  }
+}
+
+watch(
+  [isOpen, activeTab],
+  ([open, tab]) => {
+    if (open && tab === 'history') {
+      executionStore.fetchExecutionHistory()
+      startHistoryPolling()
+    } else {
+      stopHistoryPolling()
+    }
+  },
+  { immediate: true }
+)
+
 onMounted(async () => {
   await executionStore.fetchExecutionHistory()
 })
+
+onUnmounted(() => {
+  stopHistoryPolling()
+})
+
+async function refreshHistory() {
+  isRefreshingHistory.value = true
+  await executionStore.fetchExecutionHistory()
+  setTimeout(() => {
+    isRefreshingHistory.value = false
+  }, 400)
+}
 
 function copyPayload() {
   const payload = flowStore.toFlowPayload()
@@ -314,6 +358,26 @@ async function onRetry(execId: string, mode: 'freeze' | 'unfreeze') {
         v-else-if="activeTab === 'history'"
         class="flex-1 overflow-y-auto p-4 space-y-2 select-text"
       >
+        <!-- History Action Bar -->
+        <div class="flex items-center justify-between pb-2 border-b border-[#23252a]/60 mb-2">
+          <div class="flex items-center space-x-2 text-xs text-[#8a8f98]">
+            <span class="font-medium text-white">Histórico de Execuções</span>
+            <span class="flex items-center space-x-1 text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full font-mono">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Sincronização em Tempo Real</span>
+            </span>
+          </div>
+
+          <button
+            @click="refreshHistory"
+            :disabled="isRefreshingHistory"
+            class="text-xs px-2.5 py-1 rounded bg-[#141516] hover:bg-[#23252a] text-[#d0d6e0] hover:text-white border border-[#23252a] flex items-center space-x-1.5 transition-colors"
+            title="Atualizar histórico imediatamente"
+          >
+            <RefreshCw class="h-3 w-3" :class="isRefreshingHistory ? 'animate-spin text-[#5e6ad2]' : ''" />
+            <span>Atualizar</span>
+          </button>
+        </div>
         <div
           v-if="executionStore.historyList.length === 0"
           class="h-full flex flex-col items-center justify-center text-[#62666d] space-y-2 py-8"

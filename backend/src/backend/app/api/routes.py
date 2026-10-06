@@ -12,7 +12,12 @@ from backend.app.db import db_manager
 from backend.app.engine.dag_builder import DAGBuilder
 from backend.app.engine.exceptions import CyclicGraphError
 from backend.app.engine.runner import FlowRunner
-from backend.app.models.flow import FlowModel
+from backend.app.models.flow import (
+    FlowModel,
+    FlowPromoteRequest,
+    VariableCreateRequest,
+    VariableUpdateRequest,
+)
 
 router = APIRouter(prefix="/api/v1")
 
@@ -58,7 +63,7 @@ async def execute_flow(flow: FlowModel) -> dict[str, Any]:
         status="running",
     )
 
-    runner = FlowRunner(flow)
+    runner = FlowRunner(flow, environment=flow.environment)
     async for _ in runner.execute_stream():
         pass
     summary = runner.get_summary()
@@ -95,7 +100,7 @@ async def execute_flow_stream(flow: FlowModel) -> StreamingResponse:
         status="running",
     )
 
-    runner = FlowRunner(flow)
+    runner = FlowRunner(flow, environment=flow.environment)
 
     async def event_generator() -> AsyncGenerator[str, None]:
         captured_node_states: dict[str, Any] = {}
@@ -127,8 +132,12 @@ async def execute_flow_stream(flow: FlowModel) -> StreamingResponse:
 # --- FLOW PERSISTENCE CRUD ---
 
 @router.get("/flows")
-async def list_flows(active_only: bool = False) -> list[dict[str, Any]]:
-    flows = db_manager.list_flows(active_only=active_only)
+async def list_flows(
+    active_only: bool = False,
+    folder: str | None = None,
+    environment: str | None = None,
+) -> list[dict[str, Any]]:
+    flows = db_manager.list_flows(active_only=active_only, folder=folder, environment=environment)
     return [f.model_dump() for f in flows]
 
 
@@ -137,6 +146,18 @@ async def create_flow(request_data: dict[str, Any]) -> dict[str, Any]:
     flow_dict = request_data.get("flow", request_data)
     is_active = request_data.get("is_active", True)
     record = db_manager.create_flow(flow_dict, is_active=is_active)
+    return record.model_dump()
+
+
+@router.post("/flows/{flow_id}/promote")
+async def promote_flow(flow_id: str, req: FlowPromoteRequest) -> dict[str, Any]:
+    record = db_manager.promote_flow(
+        source_flow_id=flow_id,
+        target_environment=req.target_environment,
+        target_version=req.target_version,
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="Flow not found")
     return record.model_dump()
 
 
@@ -295,3 +316,74 @@ async def retry_execution(
     )
 
     return summary
+
+
+# --- VARIABLES CRUD & RESOLUTION ---
+
+@router.get("/variables")
+async def list_variables(
+    scope: str | None = None,
+    flow_id: str | None = None,
+    environment: str | None = None,
+) -> list[dict[str, Any]]:
+    records = db_manager.list_variables(scope=scope, flow_id=flow_id, environment=environment)
+    return [r.model_dump() for r in records]
+
+
+@router.get("/variables/resolved")
+async def get_resolved_variables(
+    flow_id: str | None = None,
+    environment: str = "dev",
+) -> dict[str, str]:
+    return db_manager.get_all_resolved_variables(flow_id=flow_id, environment=environment)
+
+
+@router.post("/variables", status_code=201)
+async def create_variable(req: VariableCreateRequest) -> dict[str, Any]:
+    if req.scope == "flow" and not req.flow_id:
+        raise HTTPException(
+            status_code=400,
+            detail="flow_id is required for flow-scoped variables",
+        )
+    record = db_manager.create_variable(
+        key=req.key,
+        value=req.value,
+        scope=req.scope,
+        flow_id=req.flow_id,
+        environment=req.environment,
+        is_secret=req.is_secret,
+    )
+    return record.model_dump()
+
+
+@router.get("/variables/{var_id}")
+async def get_variable(var_id: str) -> dict[str, Any]:
+    record = db_manager.get_variable(var_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Variable not found")
+    return record.model_dump()
+
+
+@router.put("/variables/{var_id}")
+async def update_variable(
+    var_id: str,
+    req: VariableUpdateRequest,
+) -> dict[str, Any]:
+    record = db_manager.update_variable(
+        var_id=var_id,
+        value=req.value,
+        environment=req.environment,
+        is_secret=req.is_secret,
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="Variable not found")
+    return record.model_dump()
+
+
+@router.delete("/variables/{var_id}")
+async def delete_variable(var_id: str) -> dict[str, bool]:
+    success = db_manager.delete_variable(var_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Variable not found")
+    return {"deleted": True}
+
