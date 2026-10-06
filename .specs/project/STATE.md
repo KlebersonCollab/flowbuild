@@ -1,15 +1,16 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Milestone 1 (Backend Core) and Milestone 2 (Vue 3 + TS Frontend Canvas) completed and verified with 100% test pass rate.
-- **Progress**: 75% (Decoupled Python runtime + Vue 3 TS flow builder fully operational and tested).
+- **Current Task**: Milestone 1 (Backend Core) and Milestone 2 (Vue 3 + TS Frontend Canvas) completed, upgraded to pro-grade Langflow builder UX, and verified with 100% test pass rate.
+- **Progress**: 80% (Decoupled Python runtime + Vue 3 TS flow builder fully operational, styled with Linear tokens, live SSE execution console, MiniMap, and preloaded automation templates).
 - **Next Steps**: Expand builtin automation node catalog (Milestone 3: Webhook runner, DB query, AI agent chains).
 
 ## 💡 Decisions Log
 - **2026-10-05 - Decoupled Architecture**: Selected Python FastAPI backend with an independent Vue 3 + TypeScript frontend communicating via REST and Server-Sent Events (SSE), adopting Langflow's dynamic schema-driven component model.
 - **2026-10-05 - Package Manager**: Adopted `uv` as the official Python package and virtual environment manager for maximum dependency resolution speed and reproducibility with `pyproject.toml`.
-- **2026-10-05 - Canvas Library**: Selected `@vue-flow/core` for the frontend canvas to match the capabilities of React Flow used in Langflow.
-- **2026-10-05 - UI Styling**: Strict adherence to [DESIGN.md](file:///F:/Projetos/flowbuild/DESIGN.md) (Linear dark system, canvas `#010102`, lavender accent `#5e6ad2`).
+- **2026-10-05 - Canvas Library**: Selected `@vue-flow/core` and `@vue-flow/minimap` for the frontend canvas to match the capabilities of React Flow used in Langflow.
+- **2026-10-05 - UI Styling**: Strict adherence to [DESIGN.md](file:///F:/Projetos/flowbuild/DESIGN.md) (Linear dark system, canvas `#010102`, lavender accent `#5e6ad2`, `@tailwindcss/vite` compiler).
+- **2026-10-05 - Live Telemetry & Console**: Implemented `ExecutionDrawer.vue` for real-time SSE streaming logs, execution durations, node output inspection, and canonical JSON export/import.
 
 ## 🚧 Active Blockers
 - None.
