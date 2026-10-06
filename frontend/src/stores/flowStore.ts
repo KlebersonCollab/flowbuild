@@ -205,6 +205,52 @@ export const useFlowStore = defineStore('flow', () => {
     selectedNodeId.value = null
   }
 
+  const isActive = ref<boolean>(true)
+  const savedFlows = ref<any[]>([])
+
+  async function fetchSavedFlows(baseUrl: string = 'http://localhost:8000'): Promise<void> {
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/flows`)
+      if (res.ok) {
+        savedFlows.value = await res.json()
+      }
+    } catch {
+      // Ignore network errors in test mode
+    }
+  }
+
+  async function saveFlowToBackend(active: boolean = true, baseUrl: string = 'http://localhost:8000'): Promise<boolean> {
+    isActive.value = active
+    const payload = toFlowPayload()
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/flows`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flow: payload, is_active: active })
+      })
+      if (res.ok) {
+        await fetchSavedFlows(baseUrl)
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+
+  async function deleteSavedFlow(id: string, baseUrl: string = 'http://localhost:8000'): Promise<boolean> {
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/flows/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        await fetchSavedFlows(baseUrl)
+        return true
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+
   return {
     flowId,
     flowName,
@@ -212,6 +258,8 @@ export const useFlowStore = defineStore('flow', () => {
     edges,
     selectedNodeId,
     selectedNode,
+    isActive,
+    savedFlows,
     addNode,
     removeNode,
     addEdge,
@@ -221,5 +269,8 @@ export const useFlowStore = defineStore('flow', () => {
     toFlowPayload,
     loadFlow,
     loadTemplate,
+    fetchSavedFlows,
+    saveFlowToBackend,
+    deleteSavedFlow,
   }
 })

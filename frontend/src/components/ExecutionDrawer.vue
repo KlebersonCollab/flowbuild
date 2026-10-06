@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import {
   Terminal,
   Layers,
   FileCode,
+  History,
   ChevronUp,
   ChevronDown,
   Trash2,
@@ -11,7 +12,9 @@ import {
   Check,
   CheckCircle2,
   XCircle,
-  Clock
+  Clock,
+  RotateCw,
+  Snowflake
 } from 'lucide-vue-next'
 import { useExecutionStore } from '../stores/executionStore'
 import { useFlowStore } from '../stores/flowStore'
@@ -42,6 +45,10 @@ const completedNodesList = computed(() => {
   })
 })
 
+onMounted(async () => {
+  await executionStore.fetchExecutionHistory()
+})
+
 function copyPayload() {
   const payload = flowStore.toFlowPayload()
   navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
@@ -58,12 +65,21 @@ function clearConsole() {
 function toggleDrawer() {
   isOpen.value = !isOpen.value
 }
+
+async function selectHistoryTab() {
+  activeTab.value = 'history'
+  await executionStore.fetchExecutionHistory()
+}
+
+async function onRetry(execId: string, mode: 'freeze' | 'unfreeze') {
+  await executionStore.retryExecution(execId, mode)
+}
 </script>
 
 <template>
   <div
     class="border-t border-[#23252a] bg-[#0c0d0e] text-[#f7f8f8] flex flex-col transition-all duration-300 shadow-2xl z-30 select-none"
-    :class="isOpen ? 'h-72' : 'h-10'"
+    :class="isOpen ? 'h-80' : 'h-10'"
   >
     <!-- Drawer Header Bar -->
     <div
@@ -141,6 +157,21 @@ function toggleDrawer() {
           >
             <FileCode class="h-3 w-3" />
             <span>JSON do Fluxo</span>
+          </button>
+
+          <button
+            @click="selectHistoryTab"
+            class="flex items-center space-x-1.5 px-3 py-1 rounded-md transition-all"
+            :class="activeTab === 'history' ? 'bg-[#23252a] text-white shadow-sm' : 'text-[#8a8f98] hover:text-[#f7f8f8]'"
+          >
+            <History class="h-3 w-3 text-[#5e6ad2]" />
+            <span>Histórico & Retry</span>
+            <span
+              v-if="executionStore.historyList.length"
+              class="text-[10px] px-1.5 py-0.2 rounded-full bg-[#18191a] text-[#8a8f98] font-mono"
+            >
+              {{ executionStore.historyList.length }}
+            </span>
           </button>
         </div>
       </div>
@@ -276,6 +307,80 @@ function toggleDrawer() {
           </button>
         </div>
         <pre class="flex-1 overflow-y-auto p-3 rounded-lg bg-[#0c0d0e] text-[#828fff] font-mono text-[11px] border border-[#23252a] leading-relaxed">{{ JSON.stringify(flowStore.toFlowPayload(), null, 2) }}</pre>
+      </div>
+
+      <!-- TAB 4: Execution History & Freeze/Unfreeze Retry -->
+      <div
+        v-else-if="activeTab === 'history'"
+        class="flex-1 overflow-y-auto p-4 space-y-2 select-text"
+      >
+        <div
+          v-if="executionStore.historyList.length === 0"
+          class="h-full flex flex-col items-center justify-center text-[#62666d] space-y-2 py-8"
+        >
+          <History class="h-6 w-6 text-[#34343a]" />
+          <p class="text-xs">Nenhuma execução registrada no banco de dados.</p>
+        </div>
+
+        <div
+          v-for="record in executionStore.historyList"
+          :key="record.id"
+          class="p-3 rounded-lg border border-[#23252a] bg-[#141516] flex items-center justify-between hover:border-[#3e3e44] transition-all"
+        >
+          <div class="flex items-center space-x-3 min-w-0">
+            <!-- Status Badge -->
+            <span
+              class="px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0"
+              :class="[
+                record.status === 'completed' ? 'bg-[#27a644]/15 text-[#27a644]' : '',
+                record.status === 'failed' ? 'bg-rose-500/15 text-rose-400' : '',
+                record.status === 'running' ? 'bg-[#5e6ad2]/15 text-[#828fff]' : '',
+              ]"
+            >
+              {{ record.status }}
+            </span>
+
+            <div class="min-w-0">
+              <div class="flex items-center space-x-2 text-xs font-semibold text-white truncate">
+                <span>{{ record.flow_id }}</span>
+                <span class="text-[10px] font-mono text-[#8a8f98] px-1.5 py-0.2 rounded bg-[#090a0b] border border-[#23252a]">
+                  {{ record.trigger_type }}
+                </span>
+              </div>
+              <div class="flex items-center space-x-3 text-[10px] text-[#8a8f98] pt-0.5 font-mono">
+                <span>{{ record.started_at ? new Date(record.started_at).toLocaleTimeString() : '' }}</span>
+                <span>•</span>
+                <span>{{ record.duration_ms ? `${record.duration_ms.toFixed(0)}ms` : '0ms' }}</span>
+                <span v-if="record.error_message" class="text-rose-400 truncate">• {{ record.error_message }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Retry Buttons (Freeze vs Unfreeze) -->
+          <div class="flex items-center space-x-2 shrink-0">
+            <!-- Freeze Retry: Only re-executes failed nodes, preserving successful upstream data -->
+            <button
+              @click="onRetry(record.id, 'freeze')"
+              :disabled="executionStore.isRunning"
+              class="text-xs px-2.5 py-1 rounded bg-[#090a0b] hover:bg-[#5e6ad2]/20 border border-[#5e6ad2]/40 text-[#828fff] flex items-center space-x-1 transition-all disabled:opacity-50"
+              title="Retry Freeze: Re-executa apenas nós pendentes/com erro, preservando saídas dos nós bem-sucedidos anteriores (sem re-cobrança de APIs)"
+            >
+              <Snowflake class="h-3 w-3 text-[#828fff]" />
+              <span>Retry Freeze</span>
+            </button>
+
+            <!-- Unfreeze Retry: Re-executes from scratch -->
+            <button
+              @click="onRetry(record.id, 'unfreeze')"
+              :disabled="executionStore.isRunning"
+              class="text-xs px-2.5 py-1 rounded bg-[#23252a] hover:bg-[#34343a] text-white flex items-center space-x-1 transition-all disabled:opacity-50"
+              title="Retry Unfreeze: Re-executa todo o fluxo do zero com os dados iniciais"
+            >
+              <RotateCw class="h-3 w-3" />
+              <span>Retry Unfreeze</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

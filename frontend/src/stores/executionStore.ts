@@ -9,7 +9,7 @@ export const useExecutionStore = defineStore('execution', () => {
   const logs = ref<string[]>([])
   const structuredLogs = ref<FlowLogEntry[]>([])
   const isDrawerOpen = ref<boolean>(false)
-  const activeDrawerTab = ref<'logs' | 'outputs' | 'payload'>('logs')
+  const activeDrawerTab = ref<'logs' | 'outputs' | 'payload' | 'history'>('logs')
 
   const nodeStartTimes = new Map<string, number>()
   let flowStartTime = 0
@@ -202,6 +202,42 @@ export const useExecutionStore = defineStore('execution', () => {
     }
   }
 
+  const historyList = ref<any[]>([])
+
+  async function fetchExecutionHistory(flowId?: string, baseUrl: string = 'http://localhost:8000'): Promise<void> {
+    try {
+      const url = flowId ? `${baseUrl}/api/v1/executions?flow_id=${flowId}` : `${baseUrl}/api/v1/executions`
+      const res = await fetch(url)
+      if (res.ok) {
+        historyList.value = await res.json()
+      }
+    } catch {
+      // Ignore in test or offline
+    }
+  }
+
+  async function retryExecution(
+    executionId: string,
+    mode: 'freeze' | 'unfreeze' = 'freeze',
+    baseUrl: string = 'http://localhost:8000'
+  ): Promise<any> {
+    isRunning.value = true
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/executions/${executionId}/retry?mode=${mode}`, {
+        method: 'POST',
+      })
+      if (!res.ok) {
+        throw new Error(`Retry failed: ${res.statusText}`)
+      }
+      const data = await res.json()
+      flowSummary.value = data
+      await fetchExecutionHistory(undefined, baseUrl)
+      return data
+    } finally {
+      isRunning.value = false
+    }
+  }
+
   return {
     isRunning,
     nodeStates,
@@ -210,9 +246,12 @@ export const useExecutionStore = defineStore('execution', () => {
     structuredLogs,
     isDrawerOpen,
     activeDrawerTab,
+    historyList,
     resetExecution,
     getNodeState,
     handleEvent,
     runFlowStream,
+    fetchExecutionHistory,
+    retryExecution,
   }
 })

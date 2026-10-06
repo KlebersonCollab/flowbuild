@@ -8,15 +8,18 @@ import {
   Layers,
   ChevronDown,
   Terminal,
-  Sparkles
+  Sparkles,
+  FolderGit2
 } from 'lucide-vue-next'
 import { useFlowStore } from '../stores/flowStore'
 import { useExecutionStore } from '../stores/executionStore'
+import FlowsModal from './FlowsModal.vue'
 
 const flowStore = useFlowStore()
 const executionStore = useExecutionStore()
 
 const showTemplatesDropdown = ref(false)
+const isFlowsModalOpen = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 
 async function onRunFlow() {
@@ -148,6 +151,16 @@ function onClearCanvas() {
         </div>
       </div>
 
+      <!-- Manage Flows (CRUD / Activation) -->
+      <button
+        @click="isFlowsModalOpen = true"
+        class="text-xs px-3 py-1.5 rounded-md bg-[#0f1011] hover:bg-[#141516] text-[#d0d6e0] hover:text-[#f7f8f8] border border-[#23252a] transition-colors flex items-center space-x-1.5"
+        title="Gerenciar fluxos salvos, ativar e desativar"
+      >
+        <FolderGit2 class="h-3.5 w-3.5 text-[#5e6ad2]" />
+        <span>Meus Fluxos</span>
+      </button>
+
       <!-- Import JSON -->
       <button
         @click="onTriggerImport"
@@ -206,5 +219,8 @@ function onClearCanvas() {
         <span>{{ executionStore.isRunning ? 'Executando...' : 'Executar Fluxo' }}</span>
       </button>
     </div>
+
+    <!-- Flows Modal -->
+    <FlowsModal :is-open="isFlowsModalOpen" @close="isFlowsModalOpen = false" />
   </header>
 </template>
