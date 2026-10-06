@@ -40,6 +40,14 @@ describe('Component Renderers Test Suite', () => {
         data: {
           inputs: { url: 'https://api.github.com' }
         }
+      },
+      global: {
+        stubs: {
+          Handle: {
+            template: '<div class="vue-flow-handle" :data-id="id" />',
+            props: ['id', 'type', 'position']
+          }
+        }
       }
     })
 
