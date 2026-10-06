@@ -37,11 +37,26 @@ function handleNodesChange(changes: any[]) {
 }
 
 function handleEdgesChange(changes: any[]) {
-  const hasRemove = changes?.some?.((c) => c.type === 'remove')
-  if (hasRemove) {
+  let hasRemoved = false
+  for (const c of changes || []) {
+    if (c.type === 'remove' && c.id) {
+      const idx = flowStore.edges.findIndex((e) => e.id === c.id)
+      if (idx !== -1) {
+        flowStore.edges.splice(idx, 1)
+        hasRemoved = true
+      }
+    }
+  }
+  if (hasRemoved) {
     flowStore.isDraft = true
     flowStore.isActive = false
     flowStore.triggerAutoSave()
+  }
+}
+
+function handleEdgeDoubleClick({ edge }: any) {
+  if (edge?.id) {
+    flowStore.removeEdge(edge.id)
   }
 }
 
@@ -66,9 +81,12 @@ const styledEdges = computed(() => {
     ...e,
     type: 'smoothstep',
     animated: executionStore.isRunning,
+    updatable: true,
+    selectable: true,
     style: {
       stroke: executionStore.isRunning ? '#828fff' : '#5e6ad2',
-      strokeWidth: 2,
+      strokeWidth: 2.5,
+      cursor: 'pointer',
     },
   }))
 })
@@ -147,9 +165,11 @@ function onDrop(event: DragEvent) {
       :node-types="nodeTypes"
       fit-view-on-init
       class="h-full w-full bg-[#010102]"
+      :delete-key-code="['Backspace', 'Delete']"
       @node-drag-stop="handleNodeDragStop"
       @nodes-change="handleNodesChange"
       @edges-change="handleEdgesChange"
+      @edge-double-click="handleEdgeDoubleClick"
     >
       <!-- Canvas Grid Background -->
       <Background :pattern-color="'#18191a'" :gap="24" :size="1" />

@@ -101,4 +101,21 @@ describe('Draft Lifecycle, Version Bumping & Lineage Synchronization', () => {
     })
     expect(store.flowDescription).toBe('Descrição carregada do backend')
   })
+
+  it('deletes edge connection, sets isDraft true, deactivates, and updates edges array', () => {
+    const store = useFlowStore()
+    const edgeId = store.addEdge({ source: 'node-1', target: 'node-2' })
+    expect(store.edges.length).toBe(1)
+    expect(store.isDraft).toBe(true)
+
+    // Reset draft and active state
+    store.isDraft = false
+    store.isActive = true
+
+    // Delete edge
+    store.removeEdge(edgeId)
+    expect(store.edges.length).toBe(0)
+    expect(store.isDraft).toBe(true)
+    expect(store.isActive).toBe(false)
+  })
 })
