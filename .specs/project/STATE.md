@@ -1,9 +1,9 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Milestone 1 (Backend Core & Decoupled Execution Engine) completed and verified. Ready for Milestone 2 (Vue 3 + TypeScript Frontend Scaffolding).
-- **Progress**: 50% (Backend core runtime, component registry, DAG engine, API routes, and 15 tests completed).
-- **Next Steps**: Plan and scaffold Vue 3 + TypeScript frontend with Vite, Pinia, and @vue-flow/core.
+- **Current Task**: Milestone 1 (Backend Core) and Milestone 2 (Vue 3 + TS Frontend Canvas) completed and verified with 100% test pass rate.
+- **Progress**: 75% (Decoupled Python runtime + Vue 3 TS flow builder fully operational and tested).
+- **Next Steps**: Expand builtin automation node catalog (Milestone 3: Webhook runner, DB query, AI agent chains).
 
 ## 💡 Decisions Log
 - **2026-10-05 - Decoupled Architecture**: Selected Python FastAPI backend with an independent Vue 3 + TypeScript frontend communicating via REST and Server-Sent Events (SSE), adopting Langflow's dynamic schema-driven component model.
