@@ -13,6 +13,7 @@ import {
   Sparkles,
   Folder,
   ArrowRight,
+  Loader2,
 } from 'lucide-vue-next'
 import { useFlowStore } from '../stores/flowStore'
 
@@ -29,10 +30,25 @@ const copiedWebhookId = ref<string | null>(null)
 const isSaving = ref(false)
 const selectedFolder = ref<string>('all')
 const promotingFlowId = ref<string | null>(null)
+const notificationMessage = ref<{
+  type: 'success' | 'error'
+  text: string
+  targetEnv?: 'qa' | 'prd'
+} | null>(null)
 
 onMounted(async () => {
   await flowStore.fetchSavedFlows()
 })
+
+const devCount = computed(() =>
+  flowStore.savedFlows.filter((f: any) => (f.environment || 'dev') === 'dev').length
+)
+const qaCount = computed(() =>
+  flowStore.savedFlows.filter((f: any) => f.environment === 'qa').length
+)
+const prdCount = computed(() =>
+  flowStore.savedFlows.filter((f: any) => f.environment === 'prd').length
+)
 
 const availableFolders = computed(() => {
   const set = new Set<string>()
@@ -71,6 +87,10 @@ async function onSaveCurrentFlow() {
   isSaving.value = true
   await flowStore.saveFlowToBackend(flowStore.isActive)
   isSaving.value = false
+  notificationMessage.value = {
+    type: 'success',
+    text: `Fluxo "${flowStore.flowName}" salvo com sucesso no banco de dados (${flowStore.currentEnvironment.toUpperCase()})!`,
+  }
 }
 
 async function onPromoteFlow(flow: any, targetEnv: 'qa' | 'prd') {
@@ -83,6 +103,16 @@ async function onPromoteFlow(flow: any, targetEnv: 'qa' | 'prd') {
   promotingFlowId.value = null
   if (ok) {
     await flowStore.fetchSavedFlows()
+    notificationMessage.value = {
+      type: 'success',
+      text: `Fluxo "${flow.name}" promovido com sucesso para ${targetEnv.toUpperCase()} (${nextVersion})!`,
+      targetEnv,
+    }
+  } else {
+    notificationMessage.value = {
+      type: 'error',
+      text: `Falha ao promover fluxo "${flow.name}" para ${targetEnv.toUpperCase()}.`,
+    }
   }
 }
 
@@ -126,17 +156,75 @@ function onCreateNewFlow() {
   >
     <div class="w-full max-w-3xl rounded-xl bg-[#0f1011] border border-[#23252a] text-[#f7f8f8] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
       <!-- Modal Header -->
-      <div class="flex items-center justify-between border-b border-[#23252a] px-5 py-3.5 bg-[#141516]">
+      <div class="flex items-center justify-between border-b border-[#23252a] px-5 py-3 bg-[#141516]">
         <div class="flex items-center space-x-2.5">
           <Sparkles class="h-4 w-4 text-[#5e6ad2]" />
-          <h2 class="text-sm font-semibold tracking-tight text-white">Gerenciador de Fluxos de Automação</h2>
+          <h2 class="text-sm font-semibold tracking-tight text-white">Gerenciador de Fluxos</h2>
         </div>
+
+        <!-- Environment Selector Tabs -->
+        <div class="flex items-center space-x-1 bg-[#090a0b] p-1 rounded-lg border border-[#23252a]">
+          <button
+            @click="flowStore.setEnvironment('dev')"
+            class="px-2.5 py-1 rounded text-xs font-semibold uppercase transition-all flex items-center space-x-1.5"
+            :class="flowStore.currentEnvironment === 'dev' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm' : 'text-[#8a8f98] hover:text-white border border-transparent'"
+          >
+            <span>DEV</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">{{ devCount }}</span>
+          </button>
+          <button
+            @click="flowStore.setEnvironment('qa')"
+            class="px-2.5 py-1 rounded text-xs font-semibold uppercase transition-all flex items-center space-x-1.5"
+            :class="flowStore.currentEnvironment === 'qa' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm' : 'text-[#8a8f98] hover:text-white border border-transparent'"
+          >
+            <span>QA</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-mono">{{ qaCount }}</span>
+          </button>
+          <button
+            @click="flowStore.setEnvironment('prd')"
+            class="px-2.5 py-1 rounded text-xs font-semibold uppercase transition-all flex items-center space-x-1.5"
+            :class="flowStore.currentEnvironment === 'prd' ? 'bg-[#5e6ad2]/25 text-[#828fff] border border-[#5e6ad2]/50 shadow-sm' : 'text-[#8a8f98] hover:text-white border border-transparent'"
+          >
+            <span>PRD</span>
+            <span class="text-[10px] px-1.5 py-0.2 rounded-full bg-[#5e6ad2]/20 text-[#828fff] font-mono">{{ prdCount }}</span>
+          </button>
+        </div>
+
         <button
           @click="emit('close')"
           class="h-7 w-7 rounded flex items-center justify-center text-[#8a8f98] hover:text-white hover:bg-[#23252a] transition-colors"
         >
           <X class="h-4 w-4" />
         </button>
+      </div>
+
+      <!-- Promotion & Save Notification Banner -->
+      <div
+        v-if="notificationMessage"
+        class="px-4 py-2.5 flex items-center justify-between border-b text-xs transition-all"
+        :class="notificationMessage.type === 'success' ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300' : 'bg-rose-950/40 border-rose-500/30 text-rose-300'"
+      >
+        <div class="flex items-center space-x-2 truncate">
+          <span class="font-bold">{{ notificationMessage.type === 'success' ? '✓' : '⚠️' }}</span>
+          <span class="truncate">{{ notificationMessage.text }}</span>
+        </div>
+        <div class="flex items-center space-x-2 shrink-0">
+          <button
+            v-if="notificationMessage.targetEnv"
+            @click="flowStore.setEnvironment(notificationMessage.targetEnv!); notificationMessage = null"
+            class="px-2.5 py-1 rounded bg-[#141516] hover:bg-[#23252a] text-white border border-[#3e3e44] font-medium flex items-center space-x-1 transition-colors"
+          >
+            <span>Ver em {{ notificationMessage.targetEnv.toUpperCase() }}</span>
+            <ArrowRight class="h-3 w-3" />
+          </button>
+          <button
+            @click="notificationMessage = null"
+            class="p-1 hover:text-white text-[#8a8f98] transition-colors"
+            title="Fechar aviso"
+          >
+            <X class="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       <!-- Action Toolbar -->
@@ -262,22 +350,24 @@ function onCreateNewFlow() {
                 v-if="(flow.environment || 'dev') === 'dev'"
                 @click="onPromoteFlow(flow, 'qa')"
                 :disabled="promotingFlowId === flow.id"
-                class="h-7 px-2.5 rounded text-xs bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 flex items-center space-x-1 transition-colors font-medium"
+                class="h-7 px-2.5 rounded text-xs bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 flex items-center space-x-1.5 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Promover fluxo de Desenvolvimento para Homologação (QA)"
               >
-                <span>Promover p/ QA</span>
-                <ArrowRight class="h-3 w-3" />
+                <Loader2 v-if="promotingFlowId === flow.id" class="h-3 w-3 animate-spin text-amber-400" />
+                <ArrowRight v-else class="h-3 w-3" />
+                <span>{{ promotingFlowId === flow.id ? 'Promovendo...' : 'Promover p/ QA' }}</span>
               </button>
 
               <button
                 v-else-if="flow.environment === 'qa'"
                 @click="onPromoteFlow(flow, 'prd')"
                 :disabled="promotingFlowId === flow.id"
-                class="h-7 px-2.5 rounded text-xs bg-[#5e6ad2]/20 hover:bg-[#5e6ad2]/30 text-[#828fff] border border-[#5e6ad2]/40 flex items-center space-x-1 transition-colors font-medium"
+                class="h-7 px-2.5 rounded text-xs bg-[#5e6ad2]/20 hover:bg-[#5e6ad2]/30 text-[#828fff] border border-[#5e6ad2]/40 flex items-center space-x-1.5 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Promover fluxo de Homologação (QA) para Produção (PRD)"
               >
-                <span>Promover p/ PRD</span>
-                <ArrowRight class="h-3 w-3" />
+                <Loader2 v-if="promotingFlowId === flow.id" class="h-3 w-3 animate-spin text-[#828fff]" />
+                <ArrowRight v-else class="h-3 w-3" />
+                <span>{{ promotingFlowId === flow.id ? 'Promovendo...' : 'Promover p/ PRD' }}</span>
               </button>
 
               <span
