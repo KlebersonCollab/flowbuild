@@ -10,12 +10,12 @@
 
 | Status | ID | Type | Description | Target Files | Dependencies | Evidence |
 |---|---|---|---|---|---|---|
-| [ ] | TASK-01 | test | Define unit tests for is_draft column, draft lifecycle in flows table, and lineage deduplication | `backend/tests/test_draft_and_lineage.py` | None | Pending execution |
-| [ ] | TASK-02 | feat | Add is_draft column to DatabaseManager and FlowModel/FlowRecord with soft migration | `backend/src/backend/app/db.py`, `backend/src/backend/app/models/flow.py` | TASK-01 | Pending execution |
-| [ ] | TASK-03 | test | Define frontend unit tests for draft state auto-save, explicit version bumping, and environment lineage switching | `frontend/tests/draft_and_lineage.test.ts` | TASK-02 | Pending execution |
-| [ ] | TASK-04 | feat | Update flowStore with deep reactivity watcher, bumpVersion helper, publishOrSaveFlow, and environment lineage switching | `frontend/src/stores/flowStore.ts`, `frontend/src/types/flow.ts` | TASK-03 | Pending execution |
-| [ ] | TASK-05 | feat | Add TopNav "Salvar Fluxo (vX.Y.Z)" button, Draft vs Saved badges, and FlowsModal draft guards on promotion/activation | `frontend/src/components/TopNav.vue`, `frontend/src/components/FlowsModal.vue` | TASK-04 | Pending execution |
-| [ ] | TASK-06 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `backend/`, `frontend/`, `.specs/` | TASK-05 | Pending execution |
+| [x] | TASK-01 | test | Define unit tests for is_draft column, draft lifecycle in flows table, and lineage deduplication | `backend/tests/test_draft_and_lineage.py` | None | [4118da2] 2 test cases in test_draft_and_lineage.py covering draft persistence, exclusion from active list, and idempotent promotion |
+| [x] | TASK-02 | feat | Add is_draft column to DatabaseManager and FlowModel/FlowRecord with soft migration | `backend/src/backend/app/db.py`, `backend/src/backend/app/models/flow.py` | TASK-01 | [4118da2] is_draft column added with SQLite PRAGMA migration and fail-safe dev deduplication (40/40 pytest passing) |
+| [x] | TASK-03 | test | Define frontend unit tests for draft state auto-save, explicit version bumping, and environment lineage switching | `frontend/tests/draft_and_lineage.test.ts` | TASK-02 | [4118da2] 3 vitest cases covering draft auto-save without version bump, explicit version bump, and bidirectional lineage sync |
+| [x] | TASK-04 | feat | Update flowStore with deep reactivity watcher, bumpVersion helper, publishOrSaveFlow, and environment lineage switching | `frontend/src/stores/flowStore.ts`, `frontend/src/types/flow.ts` | TASK-03 | [4118da2] Implemented isDraft, bumpPatchVersion, publishOrSaveFlow, setEnvironment lineage resolution; 19/19 Vitest passing |
+| [x] | TASK-05 | feat | Add TopNav "Salvar Fluxo (vX.Y.Z)" button, Draft vs Saved badges, and FlowsModal draft guards on promotion/activation | `frontend/src/components/TopNav.vue`, `frontend/src/components/FlowsModal.vue` | TASK-04 | [4118da2] TopNav Salvar button and Draft/Salvo badge, FlowsModal draft badge and promotion/activation guards; clean vue-tsc build |
+| [x] | TASK-06 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `backend/`, `frontend/`, `.specs/` | TASK-05 | [4118da2] 40/40 Pytest passing, 19/19 Vitest passing, clean production build, SDD integrity sensor 100% OK |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).
