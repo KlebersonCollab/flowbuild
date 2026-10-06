@@ -29,7 +29,19 @@ class HttpRequestComponent(BaseComponent):
             default="GET",
         ),
         StrInput(name="url", label="Endpoint URL", placeholder="https://api.example.com", required=True),
+        SelectInput(
+            name="auth_type",
+            label="Authentication Type",
+            options=["none", "bearer", "basic", "api_key_header", "api_key_query"],
+            default="none",
+        ),
+        StrInput(name="auth_token", label="Auth Token / API Key", placeholder="Token or secret", default=""),
+        StrInput(name="auth_username", label="Basic Auth Username", placeholder="Username", default=""),
+        StrInput(name="auth_password", label="Basic Auth Password", placeholder="Password", default=""),
+        StrInput(name="auth_header_name", label="API Key Header Name", default="X-API-Key"),
+        StrInput(name="auth_query_param", label="API Key Query Param", default="api_key"),
         DictInput(name="headers", label="Request Headers", default={}),
+        DictInput(name="params", label="Query Parameters", default={}),
         DictInput(name="body", label="Request Body (JSON)", default=None),
         IntInput(name="timeout", label="Timeout (seconds)", default=30),
     ]
@@ -43,14 +55,42 @@ class HttpRequestComponent(BaseComponent):
         super().__init__(inputs)
         self._last_status_code: int = 0
 
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.execute_request()
+
     async def execute_request(self) -> dict[str, Any]:
+        import base64
         inp = self.get_inputs()
-        async with httpx.AsyncClient(timeout=inp["timeout"]) as client:
+        headers = dict(inp.get("headers") or {})
+        params = dict(inp.get("params") or {})
+
+        auth_type = inp.get("auth_type", "none")
+        token = inp.get("auth_token", "")
+
+        if auth_type == "bearer" and token:
+            headers["Authorization"] = f"Bearer {token}"
+        elif auth_type == "basic":
+            user = inp.get("auth_username", "")
+            pw = inp.get("auth_password", "")
+            creds = base64.b64encode(f"{user}:{pw}".encode()).decode()
+            headers["Authorization"] = f"Basic {creds}"
+        elif auth_type == "api_key_header" and token:
+            hdr_name = inp.get("auth_header_name") or "X-API-Key"
+            headers[hdr_name] = token
+        elif auth_type == "api_key_query" and token:
+            param_name = inp.get("auth_query_param") or "api_key"
+            params[param_name] = token
+
+        timeout_sec = inp.get("timeout") or 30
+        async with httpx.AsyncClient(timeout=timeout_sec) as client:
             resp = await client.request(
                 method=inp["method"],
                 url=inp["url"],
-                headers=inp["headers"],
-                json=inp["body"],
+                headers=headers,
+                params=params if params else None,
+                json=inp.get("body"),
             )
             self._last_status_code = resp.status_code
             try:

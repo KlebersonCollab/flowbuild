@@ -1,0 +1,99 @@
+from typing import Any, ClassVar
+
+from backend.app.components.base import BaseComponent
+from backend.app.components.inputs import (
+    BaseInput,
+    DictInput,
+    StrInput,
+)
+from backend.app.components.outputs import Output
+
+
+class IfConditionComponent(BaseComponent):
+    name: ClassVar[str] = "IfConditionComponent"
+    display_name: ClassVar[str] = "IF Condition"
+    category: ClassVar[str] = "Logic"
+    description: ClassVar[str] = "Evaluates an expression against input data and routes to True or False branch."
+    icon: ClassVar[str] = "git-branch"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        DictInput(name="input_data", label="Incoming Data", required=True),
+        StrInput(
+            name="expression",
+            label="Condition Expression",
+            placeholder="data.get('status') == 'active'",
+            default="bool(data)",
+            required=True,
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="true_branch", label="True Branch (Condition Met)", type="dict", method="get_true_branch"),
+        Output(name="false_branch", label="False Branch (Condition Not Met)", type="dict", method="get_false_branch"),
+        Output(name="result", label="Result (Boolean)", type="bool", method="get_result"),
+        Output(name="branch", label="Active Branch ('true' or 'false')", type="str", method="get_branch"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._last_result: bool = False
+        self._last_data: Any = None
+        self._last_branch: str = "false"
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.evaluate_condition()
+
+    async def evaluate_condition(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        data = inp.get("input_data", {})
+        expr = inp.get("expression", "bool(data)")
+
+        safe_globals = {
+            "__builtins__": {
+                "bool": bool,
+                "int": int,
+                "float": float,
+                "str": str,
+                "len": len,
+                "list": list,
+                "dict": dict,
+                "sum": sum,
+                "max": max,
+                "min": min,
+                "isinstance": isinstance,
+                "True": True,
+                "False": False,
+                "None": None,
+            }
+        }
+        safe_locals = {"data": data}
+
+        try:
+            res = bool(eval(expr, safe_globals, safe_locals))
+        except Exception:
+            res = False
+
+        self._last_result = res
+        self._last_data = data
+        self._last_branch = "true" if res else "false"
+
+        return {
+            "result": res,
+            "branch": self._last_branch,
+            "true_branch": data if res else None,
+            "false_branch": None if res else data,
+        }
+
+    async def get_true_branch(self) -> Any:
+        return self._last_data if self._last_result else None
+
+    async def get_false_branch(self) -> Any:
+        return None if self._last_result else self._last_data
+
+    async def get_result(self) -> bool:
+        return self._last_result
+
+    async def get_branch(self) -> str:
+        return self._last_branch
