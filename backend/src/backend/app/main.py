@@ -5,23 +5,29 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.api.routes import router
 from backend.app.components.builtins import register_all_builtins
+from backend.app.db import db_manager
+from backend.app.engine.scheduler import scheduler_service
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Startup: ensure all builtin components are registered
+    # Startup: ensure all builtin components and tables are initialized
     register_all_builtins()
+    db_manager.init_db()
+    scheduler_service.start()
     yield
-    # Shutdown logic if needed
+    # Shutdown logic
+    scheduler_service.stop()
 
 
-# Ensure builtins are populated at startup
+# Ensure builtins and tables are populated at startup
 register_all_builtins()
+db_manager.init_db()
 
 app = FastAPI(
     title="FlowBuild Automation Engine",
     description="Decoupled workflow builder and async execution runtime",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 

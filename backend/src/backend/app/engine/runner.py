@@ -9,11 +9,21 @@ from backend.app.models.flow import FlowModel
 
 
 class FlowRunner:
-    def __init__(self, flow: FlowModel, registry: ComponentRegistry | None = None):
+    def __init__(
+        self,
+        flow: FlowModel,
+        registry: ComponentRegistry | None = None,
+        frozen_results: dict[str, Any] | None = None,
+    ):
         self.flow = flow
         self.registry = registry or get_registry()
         self.builder = DAGBuilder(flow)
         self.context = ExecutionContext(flow.id)
+        self.frozen_results = frozen_results or {}
+
+        # Pre-seed results with frozen outputs
+        for nid, val in self.frozen_results.items():
+            self.context.set_result(nid, val)
 
     def _resolve_node_inputs(self, node_id: str) -> dict[str, Any]:
         node = self.builder.get_node(node_id)
@@ -56,6 +66,16 @@ class FlowRunner:
         for node_id in topological_order:
             node = self.builder.get_node(node_id)
             if not node:
+                continue
+
+            # If node is already resolved via frozen execution snapshot, skip re-executing
+            if node_id in self.frozen_results:
+                yield {
+                    "event": "node_completed",
+                    "node_id": node_id,
+                    "output": self.frozen_results[node_id],
+                    "frozen": True,
+                }
                 continue
 
             # Check if any predecessor failed
@@ -104,6 +124,11 @@ class FlowRunner:
             "status": self.context.status,
             "summary": self.context.to_dict(),
         }
+
+    async def execute_flow(self) -> dict[str, Any]:
+        async for _ in self.execute_stream():
+            pass
+        return self.context.to_dict()
 
     def get_summary(self) -> dict[str, Any]:
         return self.context.to_dict()
