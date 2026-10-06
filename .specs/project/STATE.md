@@ -1,8 +1,8 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: 100% Reactivity Auto-Save, Draft Lifecycle, Version Incrementing, and Cross-Environment Lineage Synchronization (ADR 0005) completed and verified with 100% test pass rate across backend (40/40 pytest) and frontend (19/19 vitest + clean build).
-- **Progress**: 100% (100% canvas reactive auto-save, draft lifecycle with background execution lock, explicit version bumping on save, bidirectional environment lineage synchronization, TopNav Salvar button and Draft/Salvo badges).
+- **Current Task**: Edge deletion persistence and reactive canvas synchronization completed and verified with 100% test pass rate across backend (40/40 pytest) and frontend (21/21 vitest + clean build).
+- **Progress**: 100% (100% canvas reactive auto-save, edge deletion synchronization via Delete/Backspace and double-click, draft lifecycle with background execution lock, explicit version bumping on save, bidirectional environment lineage synchronization, TopNav Salvar button and Draft/Salvo badges).
 - **Next Steps**: Expand custom components catalog (DB query connectors, AI LLM agent nodes).
 
 ## 💡 Decisions Log
