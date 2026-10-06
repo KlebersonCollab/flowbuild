@@ -1,6 +1,13 @@
+
 import pytest
-from typing import AsyncGenerator
-from httpx import AsyncClient, ASGITransport
+
+from backend.app.components.builtins import register_all_builtins
+
+
+@pytest.fixture(autouse=True)
+def setup_builtins():
+    register_all_builtins()
+
 
 @pytest.fixture
 def sample_flow_data() -> dict:
