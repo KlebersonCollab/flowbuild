@@ -1,16 +1,20 @@
+from typing import ClassVar
+
 import pytest
+
 from backend.app.components.base import BaseComponent
 from backend.app.components.inputs import (
-    StrInput,
-    IntInput,
-    FloatInput,
+    BaseInput,
     BoolInput,
-    SelectInput,
-    DictInput,
     CodeInput,
+    DictInput,
+    IntInput,
+    SelectInput,
+    StrInput,
 )
 from backend.app.components.outputs import Output
 from backend.app.components.registry import ComponentRegistry
+
 
 class MockEchoComponent(BaseComponent):
     name = "MockEchoComponent"
@@ -18,7 +22,7 @@ class MockEchoComponent(BaseComponent):
     category = "Test"
     description = "Echos the provided input"
 
-    inputs = [
+    inputs: ClassVar[list[BaseInput]] = [
         StrInput(name="text", label="Text Message", required=True),
         IntInput(name="times", label="Repeat Times", default=1),
         BoolInput(name="uppercase", label="Uppercase", default=False),
@@ -27,7 +31,7 @@ class MockEchoComponent(BaseComponent):
         CodeInput(name="post_processor", label="Python Script", default=""),
     ]
 
-    outputs = [
+    outputs: ClassVar[list[Output]] = [
         Output(name="result", label="Result Text", type="str", method="run_echo"),
     ]
 
