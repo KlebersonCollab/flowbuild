@@ -34,3 +34,27 @@ class FlowModel(BaseModel):
     description: str = ""
     nodes: list[NodeModel] = Field(default_factory=list)
     edges: list[EdgeModel] = Field(default_factory=list)
+
+
+class FlowRecord(BaseModel):
+    id: str
+    name: str
+    description: str = ""
+    is_active: bool = True
+    flow_data: dict[str, Any] = Field(default_factory=dict)
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class ExecutionRecord(BaseModel):
+    id: str
+    flow_id: str
+    trigger_type: str = "manual"
+    status: str = "running"
+    started_at: str = ""
+    completed_at: str | None = None
+    duration_ms: float = 0.0
+    error_message: str | None = None
+    node_states: dict[str, Any] = Field(default_factory=dict)
+    initial_payload: dict[str, Any] = Field(default_factory=dict)
+
