@@ -1,9 +1,9 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Architectural analysis of Langflow and design of decoupled Python + Vue 3/TS workflow builder.
-- **Progress**: 25% (Architecture and specification baseline established).
-- **Next Steps**: Validate architectural blueprint with user, initialize backend core structure and frontend scaffolding.
+- **Current Task**: Milestone 1 (Backend Core & Decoupled Execution Engine) completed and verified. Ready for Milestone 2 (Vue 3 + TypeScript Frontend Scaffolding).
+- **Progress**: 50% (Backend core runtime, component registry, DAG engine, API routes, and 15 tests completed).
+- **Next Steps**: Plan and scaffold Vue 3 + TypeScript frontend with Vite, Pinia, and @vue-flow/core.
 
 ## 💡 Decisions Log
 - **2026-10-05 - Decoupled Architecture**: Selected Python FastAPI backend with an independent Vue 3 + TypeScript frontend communicating via REST and Server-Sent Events (SSE), adopting Langflow's dynamic schema-driven component model.
