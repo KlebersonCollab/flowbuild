@@ -95,6 +95,116 @@ export const useFlowStore = defineStore('flow', () => {
     selectedNodeId.value = null
   }
 
+  function loadTemplate(templateType: 'http_enrich' | 'webhook_flow' | 'python_pipeline'): void {
+    if (templateType === 'http_enrich') {
+      flowId.value = 'flow-http-enrich'
+      flowName.value = 'Enriquecimento de Dados HTTP'
+      const n1Id = 'trigger-1'
+      const n2Id = 'http-1'
+      const n3Id = 'transform-1'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'ManualTriggerComponent',
+          position: { x: 80, y: 180 },
+          data: {
+            inputs: {
+              initial_payload: { user: "octocat", action: "fetch_quote" }
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'HttpRequestComponent',
+          position: { x: 420, y: 180 },
+          data: {
+            inputs: {
+              url: 'https://api.github.com/zen',
+              method: 'GET',
+              timeout: 15
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'JsonTransformComponent',
+          position: { x: 760, y: 180 },
+          data: {
+            inputs: {
+              expression: "{'quote': payload.get('response', 'ok'), 'processed_by': 'flowbuild'}"
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'body' },
+        { id: 'e2', source: n2Id, sourceHandle: 'data', target: n3Id, targetHandle: 'input_data' }
+      ]
+    } else if (templateType === 'python_pipeline') {
+      flowId.value = 'flow-python-pipeline'
+      flowName.value = 'Pipeline de Automação Python'
+      const n1Id = 'trigger-1'
+      const n2Id = 'py-1'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'ManualTriggerComponent',
+          position: { x: 100, y: 180 },
+          data: {
+            inputs: {
+              initial_payload: { values: [10, 25, 45, 90] }
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'PythonScriptComponent',
+          position: { x: 480, y: 180 },
+          data: {
+            inputs: {
+              script: "def run(context):\n    vals = context.get('values', [])\n    return {'total': sum(vals), 'count': len(vals), 'average': sum(vals)/max(len(vals), 1)}"
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'context' }
+      ]
+    } else {
+      flowId.value = 'flow-webhook-transform'
+      flowName.value = 'Recepção Webhook & Filtro'
+      const n1Id = 'wh-1'
+      const n2Id = 'tf-1'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'WebhookTriggerComponent',
+          position: { x: 100, y: 180 },
+          data: {
+            inputs: {
+              path: '/webhook/lead',
+              method: 'POST'
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'JsonTransformComponent',
+          position: { x: 460, y: 180 },
+          data: {
+            inputs: {
+              expression: "dict(status='received', payload=payload)"
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'payload', target: n2Id, targetHandle: 'input_data' }
+      ]
+    }
+    selectedNodeId.value = null
+  }
+
   return {
     flowId,
     flowName,
@@ -110,5 +220,6 @@ export const useFlowStore = defineStore('flow', () => {
     selectNode,
     toFlowPayload,
     loadFlow,
+    loadTemplate,
   }
 })

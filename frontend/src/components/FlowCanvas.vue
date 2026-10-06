@@ -3,13 +3,16 @@ import { computed } from 'vue'
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
+import { MiniMap } from '@vue-flow/minimap'
 import CustomNode from './CustomNode.vue'
 import { useFlowStore } from '../stores/flowStore'
 import { useRegistryStore } from '../stores/registryStore'
+import { useExecutionStore } from '../stores/executionStore'
 import type { ComponentDefinition } from '../types/flow'
 
 const flowStore = useFlowStore()
 const registryStore = useRegistryStore()
+const executionStore = useExecutionStore()
 
 const { onConnect, onNodeClick, onPaneClick, project } = useVueFlow()
 
@@ -23,6 +26,28 @@ const nodeTypes = computed(() => {
   }
   return types
 })
+
+// Dynamic edges with active animation when running
+const styledEdges = computed(() => {
+  return flowStore.edges.map((e) => ({
+    ...e,
+    type: 'smoothstep',
+    animated: executionStore.isRunning,
+    style: {
+      stroke: executionStore.isRunning ? '#828fff' : '#5e6ad2',
+      strokeWidth: 2,
+    },
+  }))
+})
+
+function getMinimapNodeColor(node: any) {
+  const comp = registryStore.getComponent(node.type)
+  const cat = comp?.category?.toLowerCase() || ''
+  if (cat.includes('trigger')) return '#f59e0b'
+  if (cat.includes('action')) return '#3b82f6'
+  if (cat.includes('transform')) return '#10b981'
+  return '#5e6ad2'
+}
 
 onConnect((params) => {
   flowStore.addEdge({
@@ -85,13 +110,23 @@ function onDrop(event: DragEvent) {
   >
     <VueFlow
       v-model:nodes="flowStore.nodes"
-      v-model:edges="flowStore.edges"
+      :edges="styledEdges"
       :node-types="nodeTypes"
       fit-view-on-init
       class="h-full w-full bg-[#010102]"
     >
-      <Background :pattern-color="'#18191a'" :gap="20" />
-      <Controls class="!bg-[#0f1011] !border-[#23252a] !text-[#f7f8f8] !rounded-md shadow-lg" />
+      <!-- Canvas Grid Background -->
+      <Background :pattern-color="'#18191a'" :gap="24" :size="1" />
+
+      <!-- Canvas Controls -->
+      <Controls class="!bg-[#0f1011] !border-[#23252a] !text-[#f7f8f8] !rounded-lg !shadow-xl !p-1" />
+
+      <!-- Canvas MiniMap -->
+      <MiniMap
+        :node-color="getMinimapNodeColor"
+        :mask-color="'rgba(1, 1, 2, 0.85)'"
+        class="!bg-[#0f1011] !border !border-[#23252a] !rounded-lg !shadow-2xl !overflow-hidden"
+      />
     </VueFlow>
   </main>
 </template>

@@ -1,9 +1,23 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import {
+  Play,
+  RotateCcw,
+  Download,
+  Upload,
+  Layers,
+  ChevronDown,
+  Terminal,
+  Sparkles
+} from 'lucide-vue-next'
 import { useFlowStore } from '../stores/flowStore'
 import { useExecutionStore } from '../stores/executionStore'
 
 const flowStore = useFlowStore()
 const executionStore = useExecutionStore()
+
+const showTemplatesDropdown = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 async function onRunFlow() {
   const payload = flowStore.toFlowPayload()
@@ -21,6 +35,34 @@ function onExportJson() {
   downloadAnchor.remove()
 }
 
+function onTriggerImport() {
+  fileInputRef.value?.click()
+}
+
+function onFileSelected(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    try {
+      const content = e.target?.result as string
+      const parsed = JSON.parse(content)
+      flowStore.loadFlow(parsed)
+    } catch {
+      alert('Arquivo JSON inválido. Verifique o formato do fluxo.')
+    }
+  }
+  reader.readAsText(file)
+  target.value = ''
+}
+
+function onSelectTemplate(type: 'http_enrich' | 'webhook_flow' | 'python_pipeline') {
+  flowStore.loadTemplate(type)
+  showTemplatesDropdown.value = false
+}
+
 function onClearCanvas() {
   if (confirm('Deseja limpar todos os nós e conexões do canvas?')) {
     flowStore.nodes = []
@@ -33,50 +75,134 @@ function onClearCanvas() {
 
 <template>
   <header class="h-14 border-b border-[#23252a] bg-[#010102] text-[#f7f8f8] px-4 flex items-center justify-between select-none shrink-0 z-20">
-    <!-- Brand / Title -->
-    <div class="flex items-center space-x-3">
-      <div class="h-7 w-7 rounded-md bg-[#5e6ad2] flex items-center justify-center font-bold text-white shadow-md shadow-[#5e6ad2]/20">
-        FB
+    <!-- Brand & Flow Title -->
+    <div class="flex items-center space-x-3.5">
+      <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-[#5e6ad2] to-[#3b47aa] flex items-center justify-center font-bold text-white shadow-md shadow-[#5e6ad2]/25 border border-[#828fff]/30">
+        <Sparkles class="h-4 w-4" />
       </div>
-      <div>
-        <div class="flex items-center space-x-2">
-          <input
-            v-model="flowStore.flowName"
-            type="text"
-            class="text-sm font-semibold text-[#f7f8f8] bg-transparent border border-transparent hover:border-[#23252a] focus:border-[#5e6ad2] rounded px-1.5 py-0.5 outline-none transition-colors"
-          />
-          <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#141516] text-[#8a8f98] font-mono border border-[#23252a]">
-            v0.1.0
-          </span>
-        </div>
+
+      <div class="flex items-center space-x-2">
+        <input
+          v-model="flowStore.flowName"
+          type="text"
+          class="text-sm font-semibold text-[#f7f8f8] bg-transparent border border-transparent hover:border-[#23252a] focus:border-[#5e6ad2] rounded px-2 py-0.5 outline-none transition-colors"
+          title="Clique para renomear o fluxo"
+        />
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#141516] text-[#8a8f98] font-mono border border-[#23252a]">
+          v0.2.0 (Langflow Decoupled)
+        </span>
       </div>
     </div>
 
-    <!-- Actions -->
-    <div class="flex items-center space-x-2.5">
-      <!-- Clear Canvas -->
+    <!-- Hidden file input for flow import -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept=".json"
+      class="hidden"
+      @change="onFileSelected"
+    />
+
+    <!-- Actions & Toolbar -->
+    <div class="flex items-center space-x-2">
+      <!-- Templates Dropdown -->
+      <div class="relative">
+        <button
+          @click="showTemplatesDropdown = !showTemplatesDropdown"
+          class="text-xs px-3 py-1.5 rounded-md bg-[#0f1011] hover:bg-[#141516] text-[#d0d6e0] hover:text-[#f7f8f8] border border-[#23252a] transition-colors flex items-center space-x-1.5"
+        >
+          <Layers class="h-3.5 w-3.5 text-[#5e6ad2]" />
+          <span>Modelos</span>
+          <ChevronDown class="h-3 w-3 text-[#8a8f98]" />
+        </button>
+
+        <div
+          v-if="showTemplatesDropdown"
+          @click.outside="showTemplatesDropdown = false"
+          class="absolute left-0 mt-1 w-64 rounded-lg bg-[#0f1011] border border-[#23252a] shadow-2xl py-1 z-50 text-xs"
+        >
+          <div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#62666d] border-b border-[#23252a]">
+            Fluxos Pré-Configurados
+          </div>
+          <button
+            @click="onSelectTemplate('http_enrich')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-[#828fff]">HTTP Request & Enriquecimento</span>
+            <span class="text-[10px] text-[#8a8f98]">Disparo Manual → API GitHub → Transform JSON</span>
+          </button>
+          <button
+            @click="onSelectTemplate('python_pipeline')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-purple-400">Pipeline Python Script</span>
+            <span class="text-[10px] text-[#8a8f98]">Disparo Manual → Execução Script com Retorno</span>
+          </button>
+          <button
+            @click="onSelectTemplate('webhook_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-cyan-400">Recepção Webhook Lead</span>
+            <span class="text-[10px] text-[#8a8f98]">Webhook Trigger → Normalização de Payload</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Import JSON -->
       <button
-        @click="onClearCanvas"
-        class="text-xs px-3 py-1.5 rounded-md bg-[#0f1011] hover:bg-[#141516] text-[#8a8f98] hover:text-[#f7f8f8] border border-[#23252a] transition-colors"
+        @click="onTriggerImport"
+        class="text-xs px-2.5 py-1.5 rounded-md bg-[#0f1011] hover:bg-[#141516] text-[#8a8f98] hover:text-[#f7f8f8] border border-[#23252a] transition-colors flex items-center space-x-1"
+        title="Importar fluxo JSON"
       >
-        Limpar
+        <Upload class="h-3.5 w-3.5" />
+        <span class="hidden sm:inline">Importar</span>
       </button>
 
       <!-- Export JSON -->
       <button
         @click="onExportJson"
-        class="text-xs px-3 py-1.5 rounded-md bg-[#0f1011] hover:bg-[#141516] text-[#f7f8f8] border border-[#23252a] transition-colors flex items-center space-x-1.5"
+        class="text-xs px-2.5 py-1.5 rounded-md bg-[#0f1011] hover:bg-[#141516] text-[#8a8f98] hover:text-[#f7f8f8] border border-[#23252a] transition-colors flex items-center space-x-1"
+        title="Exportar fluxo JSON"
       >
-        <span>Exportar JSON</span>
+        <Download class="h-3.5 w-3.5" />
+        <span class="hidden sm:inline">Exportar</span>
+      </button>
+
+      <!-- Clear Canvas -->
+      <button
+        @click="onClearCanvas"
+        class="text-xs px-2.5 py-1.5 rounded-md bg-[#0f1011] hover:bg-[#141516] text-[#8a8f98] hover:text-rose-400 border border-[#23252a] transition-colors flex items-center space-x-1"
+        title="Limpar Canvas"
+      >
+        <RotateCcw class="h-3.5 w-3.5" />
+        <span class="hidden sm:inline">Limpar</span>
+      </button>
+
+      <!-- Console / Drawer Toggle -->
+      <button
+        @click="executionStore.isDrawerOpen = !executionStore.isDrawerOpen"
+        class="text-xs px-3 py-1.5 rounded-md border transition-colors flex items-center space-x-1.5"
+        :class="executionStore.isDrawerOpen ? 'bg-[#23252a] text-white border-[#3e3e44]' : 'bg-[#0f1011] text-[#8a8f98] border-[#23252a] hover:text-[#f7f8f8]'"
+        title="Abrir/Fechar Terminal de Execução"
+      >
+        <Terminal class="h-3.5 w-3.5 text-[#5e6ad2]" />
+        <span>Console</span>
+        <span
+          v-if="executionStore.structuredLogs.length"
+          class="text-[10px] px-1.5 py-0.2 rounded-full bg-[#5e6ad2]/20 text-[#828fff] font-mono"
+        >
+          {{ executionStore.structuredLogs.length }}
+        </span>
       </button>
 
       <!-- Run Flow (Button Primary - Linear Token) -->
       <button
         @click="onRunFlow"
         :disabled="executionStore.isRunning"
-        class="text-xs font-medium px-4 py-1.5 rounded-md bg-[#5e6ad2] hover:bg-[#828fff] disabled:opacity-50 text-white shadow-sm transition-all flex items-center space-x-1.5 active:bg-[#5e69d1]"
+        class="text-xs font-semibold px-4 py-1.5 rounded-md bg-[#5e6ad2] hover:bg-[#828fff] active:bg-[#5e69d1] disabled:opacity-50 text-white shadow-lg shadow-[#5e6ad2]/30 transition-all flex items-center space-x-2"
       >
-        <span v-if="executionStore.isRunning" class="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+        <span v-if="executionStore.isRunning" class="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+        <Play v-else class="h-3.5 w-3.5 fill-current" />
         <span>{{ executionStore.isRunning ? 'Executando...' : 'Executar Fluxo' }}</span>
       </button>
     </div>

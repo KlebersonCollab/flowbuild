@@ -68,6 +68,18 @@ export interface NodeExecutionState {
   status: ExecutionStatus
   output?: any
   error?: string
+  durationMs?: number
+}
+
+export interface FlowLogEntry {
+  id: string
+  timestamp: string
+  nodeId?: string
+  nodeName?: string
+  level: 'info' | 'success' | 'error' | 'warn'
+  message: string
+  durationMs?: number
+  output?: any
 }
 
 export interface ExecutionEvent {
@@ -79,4 +91,11 @@ export interface ExecutionEvent {
   error?: string
   status?: string
   summary?: any
+}
+
+export interface FlowTemplate {
+  id: string
+  name: string
+  description: string
+  flow: FlowModel
 }
