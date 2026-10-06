@@ -18,6 +18,7 @@ class FlowRunner:
         db_manager: Any | None = None,
         variables: dict[str, Any] | None = None,
         environment: str | None = None,
+        require_trigger: bool = False,
     ):
         self.flow = flow
         self.registry = registry or get_registry()
@@ -27,10 +28,23 @@ class FlowRunner:
         self.db_manager = db_manager
         self.custom_variables = variables or {}
         self.environment = environment or getattr(flow, "environment", "dev") or "dev"
+        self.require_trigger = require_trigger
 
         # Pre-seed results with frozen outputs
         for nid, val in self.frozen_results.items():
             self.context.set_result(nid, val)
+
+    def has_trigger_node(self) -> bool:
+        """Returns True if the flow contains at least one trigger node."""
+        if not self.flow.nodes:
+            return False
+        for node in self.flow.nodes:
+            comp_cls = self.registry.get(node.type)
+            if comp_cls and getattr(comp_cls, "category", "") == "Triggers":
+                return True
+            if "trigger" in node.type.lower():
+                return True
+        return False
 
     def _get_variables_map(self) -> dict[str, Any]:
         var_map: dict[str, Any] = {}
@@ -118,6 +132,21 @@ class FlowRunner:
     async def execute_stream(self) -> AsyncGenerator[dict[str, Any], None]:
         self.context.start()
         yield {"event": "flow_started", "flow_id": self.flow.id}
+
+        if self.require_trigger and not self.has_trigger_node():
+            err_msg = (
+                "O workflow precisa de pelo menos um nó Trigger inicial "
+                "(ex: ManualTriggerComponent, WebhookTriggerComponent ou CronTriggerComponent) "
+                "para ser executado."
+            )
+            self.context.set_error("workflow_validation", err_msg)
+            self.context.complete()
+            yield {
+                "event": "flow_failed",
+                "error": err_msg,
+                "summary": self.context.to_dict(),
+            }
+            return
 
         try:
             topological_order = self.builder.get_topological_order()

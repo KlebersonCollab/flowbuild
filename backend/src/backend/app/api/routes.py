@@ -63,7 +63,7 @@ async def execute_flow(flow: FlowModel) -> dict[str, Any]:
         status="running",
     )
 
-    runner = FlowRunner(flow, environment=flow.environment)
+    runner = FlowRunner(flow, environment=flow.environment, require_trigger=True)
     async for _ in runner.execute_stream():
         pass
     summary = runner.get_summary()
@@ -100,7 +100,7 @@ async def execute_flow_stream(flow: FlowModel) -> StreamingResponse:
         status="running",
     )
 
-    runner = FlowRunner(flow, environment=flow.environment)
+    runner = FlowRunner(flow, environment=flow.environment, require_trigger=True)
 
     async def event_generator() -> AsyncGenerator[str, None]:
         captured_node_states: dict[str, Any] = {}

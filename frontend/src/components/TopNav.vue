@@ -35,6 +35,22 @@ async function onSaveFlow() {
 }
 
 async function onRunFlow() {
+  const validation = flowStore.validateExecutionPreconditions()
+  if (!validation.valid) {
+    executionStore.isDrawerOpen = true
+    executionStore.activeDrawerTab = 'logs'
+    const now = new Date()
+    const timeStr = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0')
+    executionStore.structuredLogs.push({
+      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: timeStr,
+      level: 'warn',
+      message: `Bloqueio de Execução: ${validation.error}`,
+    })
+    alert(validation.error)
+    return
+  }
+
   const payload = flowStore.toFlowPayload()
   await executionStore.runFlowStream(payload)
 }
@@ -313,6 +329,7 @@ function onClearCanvas() {
         @click="onRunFlow"
         :disabled="executionStore.isRunning"
         class="text-xs font-semibold px-4 py-1.5 rounded-md bg-[#5e6ad2] hover:bg-[#828fff] active:bg-[#5e69d1] disabled:opacity-50 text-white shadow-lg shadow-[#5e6ad2]/30 transition-all flex items-center space-x-2"
+        :title="!flowStore.hasTriggerNode() ? 'Requer ao menos um nó Trigger inicial para executar' : 'Executar fluxo'"
       >
         <span v-if="executionStore.isRunning" class="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
         <Play v-else class="h-3.5 w-3.5 fill-current" />

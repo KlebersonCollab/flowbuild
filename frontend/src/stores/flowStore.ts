@@ -490,6 +490,30 @@ export const useFlowStore = defineStore('flow', () => {
     return false
   }
 
+  function hasTriggerNode(): boolean {
+    if (!nodes.value || nodes.value.length === 0) return false
+    return nodes.value.some((node) => {
+      const typeLower = (node.type || '').toLowerCase()
+      return typeLower.includes('trigger')
+    })
+  }
+
+  function validateExecutionPreconditions(): { valid: boolean; error?: string } {
+    if (!nodes.value || nodes.value.length === 0) {
+      return {
+        valid: false,
+        error: 'O canvas está vazio. Adicione componentes ao fluxo antes de executar.',
+      }
+    }
+    if (!hasTriggerNode()) {
+      return {
+        valid: false,
+        error: 'O workflow precisa de pelo menos um nó Trigger inicial (ex: Disparo Manual, Webhook ou Agendamento/Cron) para ser executado.',
+      }
+    }
+    return { valid: true }
+  }
+
   return {
     flowId,
     flowName,
@@ -528,5 +552,7 @@ export const useFlowStore = defineStore('flow', () => {
     triggerAutoSave,
     saveToLocalStorage,
     loadPersistedFlow,
+    hasTriggerNode,
+    validateExecutionPreconditions,
   }
 })
