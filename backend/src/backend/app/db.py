@@ -52,6 +52,7 @@ class DatabaseManager:
             Column("version", String(32), default="v1.0.0"),
             Column("source_flow_id", String(64), nullable=True),
             Column("is_active", Boolean, default=True),
+            Column("is_draft", Boolean, default=False),
             Column("flow_data", Text, nullable=False),
             Column("created_at", String(64), nullable=False),
             Column("updated_at", String(64), nullable=False),
@@ -118,6 +119,8 @@ class DatabaseManager:
                             conn.exec_driver_sql("ALTER TABLE flows ADD COLUMN version VARCHAR(32) DEFAULT 'v1.0.0';")
                         if "source_flow_id" not in cols_flows:
                             conn.exec_driver_sql("ALTER TABLE flows ADD COLUMN source_flow_id VARCHAR(64);")
+                        if "is_draft" not in cols_flows:
+                            conn.exec_driver_sql("ALTER TABLE flows ADD COLUMN is_draft BOOLEAN DEFAULT 0;")
                     
                     cols_vars = [c[1] for c in conn.exec_driver_sql("PRAGMA table_info(variables);").fetchall()]
                     if cols_vars:
@@ -137,6 +140,7 @@ class DatabaseManager:
         self,
         flow_data: dict[str, Any],
         is_active: bool = True,
+        is_draft: bool | None = None,
     ) -> FlowRecord:
         now = datetime.now(timezone.utc).isoformat()
         flow_id = flow_data.get("id") or f"flow-{uuid.uuid4().hex[:8]}"
@@ -146,13 +150,23 @@ class DatabaseManager:
         environment = flow_data.get("environment", "dev")
         version = flow_data.get("version", "v1.0.0")
         source_flow_id = flow_data.get("source_flow_id")
+        is_draft_val = flow_data.get("is_draft", False) if is_draft is None else is_draft
+
+        # Fail-safe: if saving into dev but ID carries a foreign environment suffix and source_flow_id exists
+        if environment == "dev" and source_flow_id and (flow_id.endswith("-qa") or flow_id.endswith("-prd")):
+            flow_id = source_flow_id
+            source_flow_id = None
 
         flow_data_persisted = dict(flow_data)
+        flow_data_persisted["id"] = flow_id
         flow_data_persisted["folder"] = folder
         flow_data_persisted["environment"] = environment
         flow_data_persisted["version"] = version
+        flow_data_persisted["is_draft"] = is_draft_val
         if source_flow_id:
             flow_data_persisted["source_flow_id"] = source_flow_id
+        elif "source_flow_id" in flow_data_persisted:
+            flow_data_persisted.pop("source_flow_id", None)
 
         with self.engine.begin() as conn:
             # Delete if exists (UPSERT semantics)
@@ -167,6 +181,7 @@ class DatabaseManager:
                     version=version,
                     source_flow_id=source_flow_id,
                     is_active=is_active,
+                    is_draft=is_draft_val,
                     flow_data=json.dumps(flow_data_persisted),
                     created_at=now,
                     updated_at=now,
@@ -182,6 +197,7 @@ class DatabaseManager:
             version=version,
             source_flow_id=source_flow_id,
             is_active=is_active,
+            is_draft=is_draft_val,
             flow_data=flow_data_persisted,
             created_at=now,
             updated_at=now,
@@ -202,6 +218,7 @@ class DatabaseManager:
                 version=row["version"] or "v1.0.0",
                 source_flow_id=row["source_flow_id"],
                 is_active=bool(row["is_active"]),
+                is_draft=bool(row.get("is_draft", False)),
                 flow_data=json.loads(row["flow_data"]),
                 created_at=row["created_at"],
                 updated_at=row["updated_at"],
@@ -236,6 +253,7 @@ class DatabaseManager:
                         version=row["version"] or "v1.0.0",
                         source_flow_id=row["source_flow_id"],
                         is_active=bool(row["is_active"]),
+                        is_draft=bool(row.get("is_draft", False)),
                         flow_data=json.loads(row["flow_data"]),
                         created_at=row["created_at"],
                         updated_at=row["updated_at"],
@@ -261,11 +279,13 @@ class DatabaseManager:
         version = flow_data.get("version", existing.version)
         source_flow_id = flow_data.get("source_flow_id", existing.source_flow_id)
         active_val = existing.is_active if is_active is None else is_active
+        draft_val = flow_data.get("is_draft", existing.is_draft)
 
         flow_data_persisted = dict(flow_data)
         flow_data_persisted["folder"] = folder
         flow_data_persisted["environment"] = environment
         flow_data_persisted["version"] = version
+        flow_data_persisted["is_draft"] = draft_val
         if source_flow_id:
             flow_data_persisted["source_flow_id"] = source_flow_id
 
@@ -281,6 +301,7 @@ class DatabaseManager:
                     version=version,
                     source_flow_id=source_flow_id,
                     is_active=active_val,
+                    is_draft=draft_val,
                     flow_data=json.dumps(flow_data_persisted),
                     updated_at=now,
                 )

@@ -10,7 +10,8 @@ import {
   Terminal,
   Sparkles,
   FolderGit2,
-  Key
+  Key,
+  Save,
 } from 'lucide-vue-next'
 import { useFlowStore } from '../stores/flowStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -24,7 +25,14 @@ const varStore = useVariablesStore()
 
 const showTemplatesDropdown = ref(false)
 const isFlowsModalOpen = ref(false)
+const isSaving = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+
+async function onSaveFlow() {
+  isSaving.value = true
+  await flowStore.publishOrSaveFlow()
+  isSaving.value = false
+}
 
 async function onRunFlow() {
   const payload = flowStore.toFlowPayload()
@@ -101,6 +109,24 @@ function onClearCanvas() {
           <span class="text-[#d0d6e0]">📁 {{ flowStore.currentFolder || 'Geral' }}</span>
           <span class="text-[#3e3e44]">·</span>
           <span class="text-amber-400/90 font-semibold">{{ flowStore.version || 'v1.0.0' }}</span>
+        </span>
+
+        <!-- Draft vs Saved Badge -->
+        <span
+          v-if="flowStore.isDraft"
+          class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center space-x-1"
+          title="Modificações não salvas. Clique em 'Salvar Fluxo' para gerar nova versão e ativar."
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+          <span>RASCUNHO</span>
+        </span>
+        <span
+          v-else
+          class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1"
+          title="Fluxo salvo e sincronizado."
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>SALVO</span>
         </span>
       </div>
 
@@ -257,6 +283,18 @@ function onClearCanvas() {
         >
           {{ executionStore.structuredLogs.length }}
         </span>
+      </button>
+
+      <!-- Save Flow Button -->
+      <button
+        @click="onSaveFlow"
+        :disabled="isSaving"
+        class="text-xs font-semibold px-3 py-1.5 rounded-md flex items-center space-x-1.5 transition-all shadow-md"
+        :class="flowStore.isDraft ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/25 ring-1 ring-amber-400/40' : 'bg-[#18191a] hover:bg-[#23252a] text-[#d0d6e0] border border-[#23252a]'"
+        :title="flowStore.isDraft ? 'Salvar rascunho e gerar nova versão (incrementar versão)' : 'Salvar e gerar nova versão'"
+      >
+        <Save class="h-3.5 w-3.5" />
+        <span>{{ isSaving ? 'Salvando...' : (flowStore.isDraft ? 'Salvar Fluxo' : 'Salvar Versão') }}</span>
       </button>
 
       <!-- Run Flow (Button Primary - Linear Token) -->

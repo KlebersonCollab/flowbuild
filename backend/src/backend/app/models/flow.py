@@ -36,6 +36,7 @@ class FlowModel(BaseModel):
     environment: str = "dev"
     version: str = "v1.0.0"
     source_flow_id: str | None = None
+    is_draft: bool = False
     nodes: list[NodeModel] = Field(default_factory=list)
     edges: list[EdgeModel] = Field(default_factory=list)
 
@@ -49,6 +50,7 @@ class FlowRecord(BaseModel):
     version: str = "v1.0.0"
     source_flow_id: str | None = None
     is_active: bool = True
+    is_draft: bool = False
     flow_data: dict[str, Any] = Field(default_factory=dict)
     created_at: str = ""
     updated_at: str = ""

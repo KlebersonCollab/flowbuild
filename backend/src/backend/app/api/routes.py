@@ -145,7 +145,8 @@ async def list_flows(
 async def create_flow(request_data: dict[str, Any]) -> dict[str, Any]:
     flow_dict = request_data.get("flow", request_data)
     is_active = request_data.get("is_active", True)
-    record = db_manager.create_flow(flow_dict, is_active=is_active)
+    is_draft = request_data.get("is_draft", flow_dict.get("is_draft", False))
+    record = db_manager.create_flow(flow_dict, is_active=is_active, is_draft=is_draft)
     return record.model_dump()
 
 

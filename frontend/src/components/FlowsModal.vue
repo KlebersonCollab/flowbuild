@@ -85,11 +85,11 @@ function copyWebhookUrl(flowId: string, path: string) {
 
 async function onSaveCurrentFlow() {
   isSaving.value = true
-  await flowStore.saveFlowToBackend(flowStore.isActive)
+  await flowStore.publishOrSaveFlow()
   isSaving.value = false
   notificationMessage.value = {
     type: 'success',
-    text: `Fluxo "${flowStore.flowName}" salvo com sucesso no banco de dados (${flowStore.currentEnvironment.toUpperCase()})!`,
+    text: `Fluxo "${flowStore.flowName}" salvo com sucesso com versão ${flowStore.version} (${flowStore.currentEnvironment.toUpperCase()})!`,
   }
 }
 
@@ -328,15 +328,28 @@ function onCreateNewFlow() {
                   📁 {{ flow.folder || 'Geral' }}
                 </span>
 
+                <!-- Draft Badge -->
+                <span
+                  v-if="flow.is_draft"
+                  class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                  title="Fluxo possui alterações em rascunho ainda não salvas"
+                >
+                  🟡 RASCUNHO
+                </span>
+
                 <!-- Active / Inactive Badge & Switch -->
                 <button
-                  @click="onToggleActive(flow)"
+                  @click="!flow.is_draft && onToggleActive(flow)"
+                  :disabled="flow.is_draft"
                   class="flex items-center space-x-1 text-[10px] font-bold px-2 py-0.5 rounded-full border transition-all"
-                  :class="flow.is_active ? 'bg-[#27a644]/15 text-[#27a644] border-[#27a644]/30' : 'bg-[#23252a] text-[#8a8f98] border-[#3e3e44]'"
-                  title="Clique para ativar/desativar agendamentos e webhooks deste fluxo"
+                  :class="[
+                    flow.is_draft ? 'bg-[#18191a] text-[#62666d] border-[#23252a] opacity-60 cursor-not-allowed' :
+                    flow.is_active ? 'bg-[#27a644]/15 text-[#27a644] border-[#27a644]/30' : 'bg-[#23252a] text-[#8a8f98] border-[#3e3e44]'
+                  ]"
+                  :title="flow.is_draft ? 'Salve o fluxo antes de ativar para execução' : 'Clique para ativar/desativar agendamentos e webhooks deste fluxo'"
                 >
                   <Power class="h-2.5 w-2.5" />
-                  <span>{{ flow.is_active ? 'ATIVO' : 'DESATIVADO' }}</span>
+                  <span>{{ flow.is_draft ? 'DESATIVADO' : (flow.is_active ? 'ATIVO' : 'DESATIVADO') }}</span>
                 </button>
               </div>
 
@@ -349,25 +362,25 @@ function onCreateNewFlow() {
               <button
                 v-if="(flow.environment || 'dev') === 'dev'"
                 @click="onPromoteFlow(flow, 'qa')"
-                :disabled="promotingFlowId === flow.id"
-                class="h-7 px-2.5 rounded text-xs bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 flex items-center space-x-1.5 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Promover fluxo de Desenvolvimento para Homologação (QA)"
+                :disabled="promotingFlowId === flow.id || flow.is_draft"
+                class="h-7 px-2.5 rounded text-xs bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 flex items-center space-x-1.5 transition-colors font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                :title="flow.is_draft ? 'Salve o fluxo antes de promover para QA' : 'Promover fluxo de Desenvolvimento para Homologação (QA)'"
               >
                 <Loader2 v-if="promotingFlowId === flow.id" class="h-3 w-3 animate-spin text-amber-400" />
                 <ArrowRight v-else class="h-3 w-3" />
-                <span>{{ promotingFlowId === flow.id ? 'Promovendo...' : 'Promover p/ QA' }}</span>
+                <span>{{ promotingFlowId === flow.id ? 'Promovendo...' : (flow.is_draft ? 'Salve p/ Promover' : 'Promover p/ QA') }}</span>
               </button>
 
               <button
                 v-else-if="flow.environment === 'qa'"
                 @click="onPromoteFlow(flow, 'prd')"
-                :disabled="promotingFlowId === flow.id"
-                class="h-7 px-2.5 rounded text-xs bg-[#5e6ad2]/20 hover:bg-[#5e6ad2]/30 text-[#828fff] border border-[#5e6ad2]/40 flex items-center space-x-1.5 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Promover fluxo de Homologação (QA) para Produção (PRD)"
+                :disabled="promotingFlowId === flow.id || flow.is_draft"
+                class="h-7 px-2.5 rounded text-xs bg-[#5e6ad2]/20 hover:bg-[#5e6ad2]/30 text-[#828fff] border border-[#5e6ad2]/40 flex items-center space-x-1.5 transition-colors font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                :title="flow.is_draft ? 'Salve o fluxo antes de promover para PRD' : 'Promover fluxo de Homologação (QA) para Produção (PRD)'"
               >
                 <Loader2 v-if="promotingFlowId === flow.id" class="h-3 w-3 animate-spin text-[#828fff]" />
                 <ArrowRight v-else class="h-3 w-3" />
-                <span>{{ promotingFlowId === flow.id ? 'Promovendo...' : 'Promover p/ PRD' }}</span>
+                <span>{{ promotingFlowId === flow.id ? 'Promovendo...' : (flow.is_draft ? 'Salve p/ Promover' : 'Promover p/ PRD') }}</span>
               </button>
 
               <span

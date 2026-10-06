@@ -17,17 +17,31 @@ const executionStore = useExecutionStore()
 const { onConnect, onNodeClick, onPaneClick, onNodeDragStop, project } = useVueFlow()
 
 function handleNodeDragStop(e: any) {
-  if (Array.isArray(e?.nodes)) {
-    for (const n of e.nodes) {
+  const targetNodes = e?.nodes || (e?.node ? [e.node] : (Array.isArray(e) ? e : [e]))
+  if (Array.isArray(targetNodes)) {
+    for (const n of targetNodes) {
       if (n?.id && n?.position) {
         flowStore.updateNodePosition(n.id, { x: n.position.x, y: n.position.y })
       }
     }
-  } else {
-    const node = e?.node || e
-    if (node?.id && node?.position) {
-      flowStore.updateNodePosition(node.id, { x: node.position.x, y: node.position.y })
-    }
+  }
+}
+
+function handleNodesChange(changes: any[]) {
+  const hasStructuralChange = changes?.some?.((c) => c.type === 'remove' || (c.type === 'position' && c.dragging === false))
+  if (hasStructuralChange) {
+    flowStore.isDraft = true
+    flowStore.isActive = false
+    flowStore.triggerAutoSave()
+  }
+}
+
+function handleEdgesChange(changes: any[]) {
+  const hasRemove = changes?.some?.((c) => c.type === 'remove')
+  if (hasRemove) {
+    flowStore.isDraft = true
+    flowStore.isActive = false
+    flowStore.triggerAutoSave()
   }
 }
 
@@ -134,6 +148,8 @@ function onDrop(event: DragEvent) {
       fit-view-on-init
       class="h-full w-full bg-[#010102]"
       @node-drag-stop="handleNodeDragStop"
+      @nodes-change="handleNodesChange"
+      @edges-change="handleEdgesChange"
     >
       <!-- Canvas Grid Background -->
       <Background :pattern-color="'#18191a'" :gap="24" :size="1" />

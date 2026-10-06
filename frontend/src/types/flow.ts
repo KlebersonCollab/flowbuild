@@ -66,6 +66,7 @@ export interface FlowModel {
   environment?: Environment
   version?: string
   source_flow_id?: string | null
+  is_draft?: boolean
   nodes: FlowNode[]
   edges: FlowEdge[]
 }
@@ -129,6 +130,7 @@ export interface FlowRecordItem {
   version?: string
   source_flow_id?: string | null
   is_active?: boolean
+  is_draft?: boolean
   flow_data: FlowModel
   created_at?: string
   updated_at?: string

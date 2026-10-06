@@ -9,12 +9,26 @@ export const useFlowStore = defineStore('flow', () => {
   const currentFolder = ref<string>('Geral')
   const version = ref<string>('v1.0.0')
   const sourceFlowId = ref<string | null>(null)
+  const isDraft = ref<boolean>(false)
   const nodes = ref<FlowNode[]>([])
   const edges = ref<FlowEdge[]>([])
   const selectedNodeId = ref<string | null>(null)
   const isActive = ref<boolean>(true)
   const savedFlows = ref<FlowRecordItem[]>([])
   let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null
+
+  function bumpPatchVersion(v: string): string {
+    try {
+      const clean = (v || 'v1.0.0').replace(/^v/, '')
+      const parts = clean.split('.')
+      const major = parseInt(parts[0] || '1', 10)
+      const minor = parseInt(parts[1] || '0', 10)
+      const patch = parseInt(parts[2] || '0', 10) + 1
+      return `v${major}.${minor}.${patch}`
+    } catch {
+      return 'v1.0.1'
+    }
+  }
 
   const selectedNode = computed(() => {
     if (!selectedNodeId.value) return null
@@ -38,7 +52,38 @@ export const useFlowStore = defineStore('flow', () => {
   })
 
   function setEnvironment(env: Environment): void {
+    if (currentEnvironment.value === env) return
     currentEnvironment.value = env
+
+    // Lineage resolution: find corresponding linked flow in target environment
+    let targetFlow: FlowRecordItem | undefined
+
+    if (env === 'dev') {
+      if (sourceFlowId.value) {
+        targetFlow = savedFlows.value.find((f) => f.id === sourceFlowId.value && (f.environment || 'dev') === 'dev')
+      }
+      if (!targetFlow) {
+        const cleanId = flowId.value.replace(/-qa$|-prd$/, '')
+        targetFlow = savedFlows.value.find((f) => f.id === cleanId && (f.environment || 'dev') === 'dev')
+      }
+    } else {
+      // Switching to QA or PRD: look for child flow promoted from flowId
+      targetFlow = savedFlows.value.find(
+        (f) =>
+          f.environment === env &&
+          (f.source_flow_id === flowId.value || f.id === `${flowId.value}-${env}`)
+      )
+    }
+
+    if (!targetFlow) {
+      targetFlow = savedFlows.value.find((f) => (f.environment || 'dev') === env)
+    }
+
+    if (targetFlow && targetFlow.flow_data) {
+      loadFlow(targetFlow.flow_data)
+      isActive.value = targetFlow.is_active ?? true
+      isDraft.value = targetFlow.is_draft ?? false
+    }
   }
 
   function setFolder(folder: string): void {
@@ -61,6 +106,8 @@ export const useFlowStore = defineStore('flow', () => {
     }
     nodes.value.push(newNode)
     selectedNodeId.value = id
+    isDraft.value = true
+    isActive.value = false
     triggerAutoSave()
     return id
   }
@@ -71,6 +118,8 @@ export const useFlowStore = defineStore('flow', () => {
     if (selectedNodeId.value === id) {
       selectedNodeId.value = null
     }
+    isDraft.value = true
+    isActive.value = false
     triggerAutoSave()
   }
 
@@ -89,12 +138,16 @@ export const useFlowStore = defineStore('flow', () => {
       targetHandle: edgeData.targetHandle,
     }
     edges.value.push(newEdge)
+    isDraft.value = true
+    isActive.value = false
     triggerAutoSave()
     return id
   }
 
   function removeEdge(id: string): void {
     edges.value = edges.value.filter((e) => e.id !== id)
+    isDraft.value = true
+    isActive.value = false
     triggerAutoSave()
   }
 
@@ -105,6 +158,8 @@ export const useFlowStore = defineStore('flow', () => {
         node.data.inputs = {}
       }
       node.data.inputs[key] = value
+      isDraft.value = true
+      isActive.value = false
       triggerAutoSave()
     }
   }
@@ -113,6 +168,8 @@ export const useFlowStore = defineStore('flow', () => {
     const node = nodes.value.find((n) => n.id === nodeId)
     if (node) {
       node.position = { ...position }
+      isDraft.value = true
+      isActive.value = false
       triggerAutoSave()
     }
   }
@@ -138,6 +195,7 @@ export const useFlowStore = defineStore('flow', () => {
       environment: currentEnvironment.value,
       version: version.value,
       source_flow_id: sourceFlowId.value,
+      is_draft: isDraft.value,
       nodes: JSON.parse(JSON.stringify(nodes.value)),
       edges: JSON.parse(JSON.stringify(edges.value)),
     }
@@ -152,6 +210,7 @@ export const useFlowStore = defineStore('flow', () => {
     }
     version.value = flow.version || 'v1.0.0'
     sourceFlowId.value = flow.source_flow_id || null
+    isDraft.value = flow.is_draft ?? false
     nodes.value = flow.nodes || []
     edges.value = flow.edges || []
     selectedNodeId.value = null
@@ -308,12 +367,17 @@ export const useFlowStore = defineStore('flow', () => {
     baseUrl: string = 'http://localhost:8000'
   ): Promise<boolean> {
     isActive.value = active
+    // Fail-safe: if in dev but ID has foreign env suffix, resolve to sourceFlowId
+    if (currentEnvironment.value === 'dev' && sourceFlowId.value && (flowId.value.endsWith('-qa') || flowId.value.endsWith('-prd'))) {
+      flowId.value = sourceFlowId.value
+      sourceFlowId.value = null
+    }
     const payload = toFlowPayload()
     try {
       const res = await fetch(`${baseUrl}/api/v1/flows`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ flow: payload, is_active: active }),
+        body: JSON.stringify({ flow: payload, is_active: active, is_draft: isDraft.value }),
       })
       if (res.ok) {
         await fetchSavedFlows(baseUrl)
@@ -323,6 +387,16 @@ export const useFlowStore = defineStore('flow', () => {
     } catch {
       return false
     }
+  }
+
+  async function publishOrSaveFlow(
+    active: boolean = true,
+    baseUrl: string = 'http://localhost:8000'
+  ): Promise<boolean> {
+    version.value = bumpPatchVersion(version.value)
+    isDraft.value = false
+    isActive.value = active
+    return await saveFlowToBackend(active, baseUrl)
   }
 
   async function deleteSavedFlow(
@@ -380,6 +454,7 @@ export const useFlowStore = defineStore('flow', () => {
         if (activeRec && activeRec.flow_data && activeRec.flow_data.nodes?.length > 0) {
           loadFlow(activeRec.flow_data)
           isActive.value = activeRec.is_active ?? true
+          isDraft.value = activeRec.is_draft ?? false
           saveToLocalStorage()
           return true
         }
@@ -396,6 +471,7 @@ export const useFlowStore = defineStore('flow', () => {
         if (parsed?.flow?.nodes?.length > 0) {
           loadFlow(parsed.flow)
           isActive.value = parsed.is_active ?? true
+          isDraft.value = parsed.flow?.is_draft ?? false
           return true
         }
       }
@@ -416,6 +492,7 @@ export const useFlowStore = defineStore('flow', () => {
     currentFolder,
     version,
     sourceFlowId,
+    isDraft,
     nodes,
     edges,
     selectedNodeId,
@@ -440,6 +517,7 @@ export const useFlowStore = defineStore('flow', () => {
     loadTemplate,
     fetchSavedFlows,
     saveFlowToBackend,
+    publishOrSaveFlow,
     deleteSavedFlow,
     triggerAutoSave,
     saveToLocalStorage,
