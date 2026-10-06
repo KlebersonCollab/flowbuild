@@ -10,17 +10,17 @@
 
 | Status | ID | Type | Description | Target Files | Dependencies | Evidence |
 |---|---|---|---|---|---|---|
-| [ ] | TASK-01 | test | Scaffold backend project with uv and initialize unit test harness | `backend/pyproject.toml`, `backend/tests/conftest.py` | None | |
-| [ ] | TASK-02 | test | Define test suite for component descriptors, registry, and auto-discovery | `backend/tests/test_components.py` | TASK-01 | |
-| [ ] | TASK-03 | feat | Implement Component base classes, typed Input hierarchy, and Output descriptors | `backend/app/components/base.py`, `backend/app/components/inputs.py`, `backend/app/components/outputs.py` | TASK-02 | |
-| [ ] | TASK-04 | feat | Implement Component Registry with dynamic registration and JSON schema export | `backend/app/components/registry.py` | TASK-03 | |
-| [ ] | TASK-05 | test | Define test suite for DAG topological sorting, cycle detection, and async execution runner | `backend/tests/test_dag_engine.py` | TASK-04 | |
-| [ ] | TASK-06 | feat | Implement Flow domain models and DAG builder with topological sort and cycle validation | `backend/app/models/flow.py`, `backend/app/engine/dag_builder.py` | TASK-05 | |
-| [ ] | TASK-07 | feat | Implement async DAG execution runner with state passing, error handling, and event streaming | `backend/app/engine/runner.py`, `backend/app/engine/context.py` | TASK-06 | |
-| [ ] | TASK-08 | feat | Implement built-in automation components (ManualTrigger, HttpRequest, PythonScript, JsonTransform) | `backend/app/components/builtins/triggers.py`, `backend/app/components/builtins/actions.py` | TASK-07 | |
-| [ ] | TASK-09 | test | Define integration test suite for FastAPI REST API endpoints | `backend/tests/test_api.py` | TASK-08 | |
-| [ ] | TASK-10 | feat | Implement FastAPI application and route controllers for components, validation, and execution | `backend/app/main.py`, `backend/app/api/routes.py` | TASK-09 | |
-| [ ] | TASK-11 | review | Audit all acceptance criteria, run ruff linter, pytest suite, and SDD integrity sensor | `backend/`, `.specs/` | TASK-10 | |
+| [x] | TASK-01 | test | Scaffold backend project with uv and initialize unit test harness | `backend/pyproject.toml`, `backend/tests/conftest.py` | None | `aad980b` uv init + test harness pass |
+| [x] | TASK-02 | test | Define test suite for component descriptors, registry, and auto-discovery | `backend/tests/test_components.py` | TASK-01 | `d14fb8d` test_components.py scaffolded |
+| [x] | TASK-03 | feat | Implement Component base classes, typed Input hierarchy, and Output descriptors | `backend/app/components/base.py`, `backend/app/components/inputs.py`, `backend/app/components/outputs.py` | TASK-02 | `dc52ea0` BaseComponent and inputs pass |
+| [x] | TASK-04 | feat | Implement Component Registry with dynamic registration and JSON schema export | `backend/app/components/registry.py` | TASK-03 | `dc52ea0` ComponentRegistry pass |
+| [x] | TASK-05 | test | Define test suite for DAG topological sorting, cycle detection, and async execution runner | `backend/tests/test_dag_engine.py` | TASK-04 | `f95fba6` test_dag_engine.py scaffolded |
+| [x] | TASK-06 | feat | Implement Flow domain models and DAG builder with topological sort and cycle validation | `backend/app/models/flow.py`, `backend/app/engine/dag_builder.py` | TASK-05 | `42bfc07` DAGBuilder and topological sort pass |
+| [x] | TASK-07 | feat | Implement async DAG execution runner with state passing, error handling, and event streaming | `backend/app/engine/runner.py`, `backend/app/engine/context.py` | TASK-06 | `42bfc07` FlowRunner stream and failure isolation pass |
+| [x] | TASK-08 | feat | Implement built-in automation components (ManualTrigger, HttpRequest, PythonScript, JsonTransform) | `backend/app/components/builtins/triggers.py`, `backend/app/components/builtins/actions.py` | TASK-07 | `76d862c` Built-in triggers and actions pass |
+| [x] | TASK-09 | test | Define integration test suite for FastAPI REST API endpoints | `backend/tests/test_api.py` | TASK-08 | `d4814cf` test_api.py scaffolded |
+| [x] | TASK-10 | feat | Implement FastAPI application and route controllers for components, validation, and execution | `backend/app/main.py`, `backend/app/api/routes.py` | TASK-09 | `7400c8e` FastAPI routes and lifespan pass |
+| [x] | TASK-11 | review | Audit all acceptance criteria, run ruff linter, pytest suite, and SDD integrity sensor | `backend/`, `.specs/` | TASK-10 | `849ea78` 15/15 tests pass, ruff 0 errs, SDD integrity ok |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).
