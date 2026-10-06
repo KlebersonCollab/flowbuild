@@ -14,6 +14,8 @@ import {
   Folder,
   ArrowRight,
   Loader2,
+  FileText,
+  Pencil,
 } from 'lucide-vue-next'
 import { useFlowStore } from '../stores/flowStore'
 
@@ -30,6 +32,8 @@ const copiedWebhookId = ref<string | null>(null)
 const isSaving = ref(false)
 const selectedFolder = ref<string>('all')
 const promotingFlowId = ref<string | null>(null)
+const editingDescFlowId = ref<string | null>(null)
+const tempDescription = ref('')
 const notificationMessage = ref<{
   type: 'success' | 'error'
   text: string
@@ -138,11 +142,35 @@ async function onDeleteFlow(flowId: string) {
   }
 }
 
+function startEditDescription(flow: any) {
+  editingDescFlowId.value = flow.id
+  tempDescription.value = flow.description || ''
+}
+
+async function saveFlowDescription(flow: any) {
+  if (!editingDescFlowId.value) return
+  const newDesc = tempDescription.value.trim()
+  const updatedData = { ...flow.flow_data, description: newDesc }
+  await fetch(`http://localhost:8000/api/v1/flows/${flow.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ flow: updatedData, description: newDesc }),
+  })
+  flow.description = newDesc
+  flow.flow_data.description = newDesc
+  if (flowStore.flowId === flow.id) {
+    flowStore.flowDescription = newDesc
+  }
+  editingDescFlowId.value = null
+  await flowStore.fetchSavedFlows()
+}
+
 function onCreateNewFlow() {
   flowStore.nodes = []
   flowStore.edges = []
   flowStore.flowId = `flow-${Date.now()}`
   flowStore.flowName = 'Novo Fluxo de Automação'
+  flowStore.flowDescription = ''
   flowStore.isActive = true
   emit('close')
 }
@@ -249,6 +277,18 @@ function onCreateNewFlow() {
               title="Pasta do fluxo atual"
             />
           </div>
+
+          <!-- Description for active flow -->
+          <div class="flex items-center space-x-1.5 bg-[#141516] border border-[#23252a] rounded-md px-2 py-1 text-xs">
+            <FileText class="h-3 w-3 text-[#8a8f98]" />
+            <input
+              v-model="flowStore.flowDescription"
+              type="text"
+              class="bg-transparent text-xs text-white placeholder-[#62666d] outline-none w-44 md:w-56"
+              placeholder="Descrição do fluxo atual..."
+              title="Descrição do fluxo atual"
+            />
+          </div>
         </div>
 
         <div class="flex items-center space-x-2">
@@ -353,7 +393,45 @@ function onCreateNewFlow() {
                 </button>
               </div>
 
-              <p class="text-[11px] text-[#8a8f98] truncate pt-1">{{ flow.description || 'Sem descrição informada.' }}</p>
+              <!-- Inline Editable Description -->
+              <div class="pt-1 flex items-center space-x-1.5 group">
+                <template v-if="editingDescFlowId === flow.id">
+                  <input
+                    v-model="tempDescription"
+                    type="text"
+                    class="text-[11px] bg-[#090a0b] text-white border border-[#5e6ad2] rounded px-2 py-0.5 outline-none flex-1 font-sans"
+                    placeholder="Digite a descrição deste fluxo..."
+                    @keyup.enter="saveFlowDescription(flow)"
+                    @keyup.esc="editingDescFlowId = null"
+                    autoFocus
+                  />
+                  <button
+                    @click="saveFlowDescription(flow)"
+                    class="p-1 rounded bg-[#27a644]/20 hover:bg-[#27a644]/30 text-[#27a644] transition-colors"
+                    title="Salvar descrição"
+                  >
+                    <Check class="h-3 w-3" />
+                  </button>
+                  <button
+                    @click="editingDescFlowId = null"
+                    class="p-1 rounded bg-[#23252a] hover:bg-[#34343a] text-[#8a8f98] transition-colors"
+                    title="Cancelar"
+                  >
+                    <X class="h-3 w-3" />
+                  </button>
+                </template>
+                <template v-else>
+                  <p
+                    @click="startEditDescription(flow)"
+                    class="text-[11px] cursor-pointer truncate transition-colors flex items-center space-x-1.5"
+                    :class="flow.description ? 'text-[#8a8f98] hover:text-[#d0d6e0]' : 'italic text-[#62666d] hover:text-[#8a8f98]'"
+                    title="Clique para editar a descrição deste fluxo"
+                  >
+                    <span>{{ flow.description || 'Sem descrição informada (clique para adicionar)...' }}</span>
+                    <Pencil class="h-2.5 w-2.5 opacity-0 group-hover:opacity-100 text-[#5e6ad2] transition-opacity shrink-0" />
+                  </p>
+                </template>
+              </div>
             </div>
 
             <!-- Promotion and Open/Delete Actions -->

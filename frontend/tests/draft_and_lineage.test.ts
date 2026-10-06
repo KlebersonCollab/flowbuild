@@ -84,4 +84,21 @@ describe('Draft Lifecycle, Version Bumping & Lineage Synchronization', () => {
     expect(store.flowId).toBe('flow-orders-dev-qa')
     expect(store.version).toBe('v1.1.0')
   })
+
+  it('manages flow description and includes it in toFlowPayload and loadFlow', () => {
+    const store = useFlowStore()
+    store.flowDescription = 'Fluxo de conciliação financeira automática'
+
+    const payload = store.toFlowPayload()
+    expect(payload.description).toBe('Fluxo de conciliação financeira automática')
+
+    store.loadFlow({
+      id: 'f-1',
+      name: 'Flow 1',
+      description: 'Descrição carregada do backend',
+      nodes: [],
+      edges: [],
+    })
+    expect(store.flowDescription).toBe('Descrição carregada do backend')
+  })
 })

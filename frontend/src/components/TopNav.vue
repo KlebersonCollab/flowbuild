@@ -96,38 +96,49 @@ function onClearCanvas() {
         <Sparkles class="h-4 w-4" />
       </div>
 
-      <div class="flex items-center space-x-2">
+      <div class="flex flex-col justify-center">
+        <div class="flex items-center space-x-2">
+          <input
+            v-model="flowStore.flowName"
+            type="text"
+            class="text-sm font-semibold text-[#f7f8f8] bg-transparent border border-transparent hover:border-[#23252a] focus:border-[#5e6ad2] rounded px-1.5 py-0.2 outline-none transition-colors max-w-[180px] md:max-w-[220px] truncate"
+            title="Clique para renomear o fluxo"
+          />
+
+          <!-- Folder & Version Tag -->
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#141516] text-[#8a8f98] font-mono border border-[#23252a] flex items-center space-x-1.5">
+            <span class="text-[#d0d6e0]">📁 {{ flowStore.currentFolder || 'Geral' }}</span>
+            <span class="text-[#3e3e44]">·</span>
+            <span class="text-amber-400/90 font-semibold">{{ flowStore.version || 'v1.0.0' }}</span>
+          </span>
+
+          <!-- Draft vs Saved Badge -->
+          <span
+            v-if="flowStore.isDraft"
+            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center space-x-1"
+            title="Modificações não salvas. Clique em 'Salvar Fluxo' para gerar nova versão e ativar."
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+            <span>RASCUNHO</span>
+          </span>
+          <span
+            v-else
+            class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1"
+            title="Fluxo salvo e sincronizado."
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span>SALVO</span>
+          </span>
+        </div>
+
+        <!-- Inline Description Input -->
         <input
-          v-model="flowStore.flowName"
+          v-model="flowStore.flowDescription"
           type="text"
-          class="text-sm font-semibold text-[#f7f8f8] bg-transparent border border-transparent hover:border-[#23252a] focus:border-[#5e6ad2] rounded px-2 py-0.5 outline-none transition-colors max-w-[200px] md:max-w-[260px] truncate"
-          title="Clique para renomear o fluxo"
+          placeholder="Adicionar descrição ao fluxo..."
+          class="text-[10px] text-[#8a8f98] placeholder-[#4e5157] bg-transparent border-b border-transparent hover:border-[#23252a] focus:border-[#5e6ad2] px-1.5 outline-none transition-colors max-w-[240px] md:max-w-[340px] truncate"
+          title="Clique para editar a descrição deste fluxo"
         />
-
-        <!-- Folder & Version Tag -->
-        <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#141516] text-[#8a8f98] font-mono border border-[#23252a] flex items-center space-x-1.5">
-          <span class="text-[#d0d6e0]">📁 {{ flowStore.currentFolder || 'Geral' }}</span>
-          <span class="text-[#3e3e44]">·</span>
-          <span class="text-amber-400/90 font-semibold">{{ flowStore.version || 'v1.0.0' }}</span>
-        </span>
-
-        <!-- Draft vs Saved Badge -->
-        <span
-          v-if="flowStore.isDraft"
-          class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center space-x-1"
-          title="Modificações não salvas. Clique em 'Salvar Fluxo' para gerar nova versão e ativar."
-        >
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-          <span>RASCUNHO</span>
-        </span>
-        <span
-          v-else
-          class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1"
-          title="Fluxo salvo e sincronizado."
-        >
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          <span>SALVO</span>
-        </span>
       </div>
 
       <!-- Environment Switcher (DEV / QA / PRD) -->

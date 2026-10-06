@@ -5,6 +5,7 @@ import type { FlowNode, FlowEdge, FlowPosition, FlowModel, Environment, FlowReco
 export const useFlowStore = defineStore('flow', () => {
   const flowId = ref<string>('flow-current')
   const flowName = ref<string>('My Automation Workflow')
+  const flowDescription = ref<string>('')
   const currentEnvironment = ref<Environment>('dev')
   const currentFolder = ref<string>('Geral')
   const version = ref<string>('v1.0.0')
@@ -190,7 +191,7 @@ export const useFlowStore = defineStore('flow', () => {
     return {
       id: flowId.value,
       name: name || flowName.value,
-      description: description || '',
+      description: description !== undefined ? description : (flowDescription.value || ''),
       folder: currentFolder.value,
       environment: currentEnvironment.value,
       version: version.value,
@@ -204,6 +205,7 @@ export const useFlowStore = defineStore('flow', () => {
   function loadFlow(flow: FlowModel): void {
     flowId.value = flow.id
     flowName.value = flow.name
+    flowDescription.value = flow.description || ''
     currentFolder.value = flow.folder || 'Geral'
     if (flow.environment) {
       currentEnvironment.value = flow.environment
@@ -220,6 +222,7 @@ export const useFlowStore = defineStore('flow', () => {
     if (templateType === 'http_enrich') {
       flowId.value = 'flow-http-enrich'
       flowName.value = 'Enriquecimento de Dados HTTP'
+      flowDescription.value = 'Disparo manual que consome a API do GitHub e formata os dados em JSON estruturado.'
       const n1Id = 'trigger-1'
       const n2Id = 'http-1'
       const n3Id = 'transform-1'
@@ -264,6 +267,7 @@ export const useFlowStore = defineStore('flow', () => {
     } else if (templateType === 'python_pipeline') {
       flowId.value = 'flow-python-pipeline'
       flowName.value = 'Pipeline de Automação Python'
+      flowDescription.value = 'Pipeline com script Python customizado para processamento e agregações matemáticas.'
       const n1Id = 'trigger-1'
       const n2Id = 'py-1'
       nodes.value = [
@@ -294,6 +298,7 @@ export const useFlowStore = defineStore('flow', () => {
     } else {
       flowId.value = 'flow-webhook-transform'
       flowName.value = 'Recepção Webhook & Filtro'
+      flowDescription.value = 'Endpoint de webhook HTTP para recepção e filtragem contínua de leads em tempo real.'
       const n1Id = 'wh-1'
       const n2Id = 'tf-1'
       nodes.value = [
@@ -488,6 +493,7 @@ export const useFlowStore = defineStore('flow', () => {
   return {
     flowId,
     flowName,
+    flowDescription,
     currentEnvironment,
     currentFolder,
     version,
