@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import {
   X,
   Plus,
@@ -12,6 +12,11 @@ import {
   Webhook,
   Sparkles,
   Folder,
+  FolderOpen,
+  FolderPlus,
+  ChevronRight,
+  ChevronDown,
+  Search,
   ArrowRight,
   Loader2,
   FileText,
@@ -20,6 +25,13 @@ import {
 } from 'lucide-vue-next'
 import { useFlowStore } from '../stores/flowStore'
 import { getWebhookInfo, getWebhookAuthBadge, getWebhookCurlCommand } from '../utils/webhook'
+import {
+  buildFolderTree,
+  matchFlowFolder,
+  flattenVisibleTree,
+  sanitizeFolderPath,
+  type FlatTreeItem,
+} from '../utils/folderTree'
 
 const props = defineProps<{
   isOpen: boolean
@@ -34,6 +46,10 @@ const copiedWebhookId = ref<string | null>(null)
 const copiedCurlId = ref<string | null>(null)
 const isSaving = ref(false)
 const selectedFolder = ref<string>('all')
+const expandedFolders = ref<Set<string>>(new Set())
+const folderSearchQuery = ref('')
+const isCreatingFolder = ref(false)
+const newFolderName = ref('')
 const promotingFlowId = ref<string | null>(null)
 const editingDescFlowId = ref<string | null>(null)
 const tempDescription = ref('')
@@ -42,10 +58,6 @@ const notificationMessage = ref<{
   text: string
   targetEnv?: 'qa' | 'prd'
 } | null>(null)
-
-onMounted(async () => {
-  await flowStore.fetchSavedFlows()
-})
 
 const devCount = computed(() =>
   flowStore.savedFlows.filter((f: any) => (f.environment || 'dev') === 'dev').length
@@ -57,22 +69,80 @@ const prdCount = computed(() =>
   flowStore.savedFlows.filter((f: any) => f.environment === 'prd').length
 )
 
-const availableFolders = computed(() => {
-  const set = new Set<string>()
-  flowStore.savedFlows.forEach((f: any) => {
-    set.add(f.folder || 'Geral')
-  })
-  return Array.from(set).sort()
+const folderTree = computed(() => {
+  const envFlows = flowStore.savedFlows.filter(
+    (f: any) => (f.environment || 'dev') === flowStore.currentEnvironment
+  )
+  return buildFolderTree(envFlows)
+})
+
+const visibleTreeItems = computed<FlatTreeItem[]>(() => {
+  return flattenVisibleTree(
+    folderTree.value,
+    expandedFolders.value,
+    folderSearchQuery.value
+  )
 })
 
 const filteredFlows = computed(() => {
   return flowStore.savedFlows.filter((f: any) => {
     const matchesEnv = (f.environment || 'dev') === flowStore.currentEnvironment
-    const matchesFolder =
-      selectedFolder.value === 'all' || (f.folder || 'Geral') === selectedFolder.value
+    const matchesFolder = matchFlowFolder(f.folder, selectedFolder.value)
     return matchesEnv && matchesFolder
   })
 })
+
+function toggleFolderExpand(path: string, event?: Event) {
+  if (event) event.stopPropagation()
+  const next = new Set(expandedFolders.value)
+  if (next.has(path)) {
+    next.delete(path)
+  } else {
+    next.add(path)
+  }
+  expandedFolders.value = next
+}
+
+function selectFolder(path: string) {
+  selectedFolder.value = path
+  if (path !== 'all') {
+    const next = new Set(expandedFolders.value)
+    next.add(path)
+    expandedFolders.value = next
+  }
+}
+
+function handleCreateFolder() {
+  const trimmed = newFolderName.value.trim()
+  if (!trimmed) return
+  const sanitized = sanitizeFolderPath(trimmed)
+  selectFolder(sanitized)
+  flowStore.currentFolder = sanitized
+  newFolderName.value = ''
+  isCreatingFolder.value = false
+}
+
+function autoExpandRoots() {
+  const next = new Set(expandedFolders.value)
+  folderTree.value.forEach(node => {
+    if (node.children.length > 0) {
+      next.add(node.fullPath)
+    }
+  })
+  expandedFolders.value = next
+}
+
+onMounted(async () => {
+  await flowStore.fetchSavedFlows()
+  autoExpandRoots()
+})
+
+watch(
+  () => flowStore.currentEnvironment,
+  () => {
+    autoExpandRoots()
+  }
+)
 
 
 function copyWebhookUrl(flowId: string, path: string) {
@@ -189,7 +259,7 @@ function onCreateNewFlow() {
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm select-none"
     @click.self="emit('close')"
   >
-    <div class="w-full max-w-3xl rounded-xl bg-[#0f1011] border border-[#23252a] text-[#f7f8f8] shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
+    <div class="w-full max-w-5xl rounded-xl bg-[#0f1011] border border-[#23252a] text-[#f7f8f8] shadow-2xl flex flex-col h-[88vh] overflow-hidden">
       <!-- Modal Header -->
       <div class="flex items-center justify-between border-b border-[#23252a] px-5 py-3 bg-[#141516]">
         <div class="flex items-center space-x-2.5">
@@ -310,31 +380,171 @@ function onCreateNewFlow() {
         </div>
       </div>
 
-      <!-- Folders Filter Bar -->
-      <div class="px-4 py-2 border-b border-[#23252a] bg-[#0d0e0f] flex items-center space-x-1.5 overflow-x-auto text-xs">
-        <span class="text-[11px] text-[#62666d] uppercase font-semibold mr-1 shrink-0">Pastas:</span>
-        <button
-          @click="selectedFolder = 'all'"
-          :class="selectedFolder === 'all' ? 'bg-[#5e6ad2]/20 text-[#828fff] border-[#5e6ad2]/40 font-medium' : 'bg-[#141516] text-[#8a8f98] hover:text-[#d0d6e0] border-[#23252a]'"
-          class="px-2.5 py-0.5 rounded-full border text-[11px] transition-colors shrink-0"
-        >
-          Todas ({{ flowStore.flowsInCurrentEnvironment.length }})
-        </button>
+      <!-- Main Split Body (Worktree Sidebar + Flows Content) -->
+      <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
+        <!-- Left Pane: Worktree Sidebar -->
+        <aside class="w-full md:w-64 border-b md:border-b-0 md:border-r border-[#23252a] bg-[#0b0c0e] flex flex-col shrink-0">
+          <!-- Worktree Header & Search -->
+          <div class="p-2.5 border-b border-[#23252a] space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold uppercase tracking-wider text-[#8a8f98] flex items-center space-x-1.5">
+                <Folder class="h-3.5 w-3.5 text-[#5e6ad2]" />
+                <span>Worktree de Pastas</span>
+              </span>
+              <button
+                @click="isCreatingFolder = !isCreatingFolder"
+                class="p-1 rounded hover:bg-[#1a1b1e] text-[#8a8f98] hover:text-white transition-colors"
+                title="Criar nova pasta"
+              >
+                <FolderPlus class="h-3.5 w-3.5 text-[#828fff]" />
+              </button>
+            </div>
 
-        <button
-          v-for="folder in availableFolders"
-          :key="folder"
-          @click="selectedFolder = folder"
-          :class="selectedFolder === folder ? 'bg-[#5e6ad2]/20 text-[#828fff] border-[#5e6ad2]/40 font-medium' : 'bg-[#141516] text-[#8a8f98] hover:text-[#d0d6e0] border-[#23252a]'"
-          class="px-2.5 py-0.5 rounded-full border text-[11px] transition-colors shrink-0 flex items-center space-x-1"
-        >
-          <span>📁 {{ folder }}</span>
-          <span class="text-[10px] text-[#62666d]">({{ flowStore.savedFlows.filter((f: any) => (f.folder || 'Geral') === folder && (f.environment || 'dev') === flowStore.currentEnvironment).length }})</span>
-        </button>
-      </div>
+            <!-- Quick folder search -->
+            <div class="flex items-center space-x-1.5 bg-[#141516] border border-[#23252a] rounded px-2 py-1 text-xs">
+              <Search class="h-3 w-3 text-[#62666d] shrink-0" />
+              <input
+                v-model="folderSearchQuery"
+                type="text"
+                placeholder="Filtrar pastas..."
+                class="bg-transparent text-xs text-white placeholder-[#62666d] outline-none w-full"
+              />
+              <button
+                v-if="folderSearchQuery"
+                @click="folderSearchQuery = ''"
+                class="text-[#62666d] hover:text-white text-xs"
+              >
+                ×
+              </button>
+            </div>
 
-      <!-- Flows List -->
-      <div class="flex-1 overflow-y-auto p-4 space-y-3">
+            <!-- Inline Create Folder -->
+            <div v-if="isCreatingFolder" class="pt-1 flex items-center space-x-1.5">
+              <input
+                v-model="newFolderName"
+                type="text"
+                placeholder="Ex: Financeiro/PIX"
+                class="bg-[#141516] border border-[#5e6ad2] rounded px-2 py-1 text-xs text-white placeholder-[#62666d] outline-none flex-1 font-mono text-[11px]"
+                @keyup.enter="handleCreateFolder"
+                @keyup.esc="isCreatingFolder = false"
+                autoFocus
+              />
+              <button
+                @click="handleCreateFolder"
+                class="p-1 rounded bg-[#5e6ad2] hover:bg-[#828fff] text-white transition-colors text-xs font-semibold"
+                title="Criar e Selecionar"
+              >
+                <Check class="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Tree View Scrollable Navigation -->
+          <div class="flex-1 overflow-y-auto p-2 space-y-0.5 text-xs font-sans">
+            <!-- "Todos os Fluxos" root node -->
+            <button
+              @click="selectedFolder = 'all'"
+              class="w-full flex items-center justify-between px-2.5 py-1.5 rounded text-left transition-all group"
+              :class="selectedFolder === 'all'
+                ? 'bg-[#5e6ad2]/20 text-[#828fff] border border-[#5e6ad2]/40 font-medium'
+                : 'text-[#8a8f98] hover:text-white hover:bg-[#141516] border border-transparent'"
+            >
+              <div class="flex items-center space-x-2 truncate">
+                <FolderOpen v-if="selectedFolder === 'all'" class="h-3.5 w-3.5 text-[#828fff] shrink-0" />
+                <Folder v-else class="h-3.5 w-3.5 text-[#62666d] group-hover:text-[#8a8f98] shrink-0" />
+                <span class="truncate">Todos os Fluxos</span>
+              </div>
+              <span
+                class="text-[10px] px-1.5 py-0.2 rounded-full font-mono"
+                :class="selectedFolder === 'all' ? 'bg-[#5e6ad2]/30 text-[#828fff]' : 'bg-[#18191a] text-[#62666d]'"
+              >
+                {{ flowStore.flowsInCurrentEnvironment.length }}
+              </span>
+            </button>
+
+            <!-- Flat Visible Items of the Folder Tree -->
+            <div
+              v-for="item in visibleTreeItems"
+              :key="item.id"
+              class="flex items-center rounded text-left transition-all group select-none cursor-pointer"
+              :class="selectedFolder === item.fullPath
+                ? 'bg-[#5e6ad2]/20 text-[#828fff] border border-[#5e6ad2]/40 font-medium'
+                : 'text-[#8a8f98] hover:text-white hover:bg-[#141516] border border-transparent'"
+              :style="{ paddingLeft: `${item.depth * 14 + 6}px` }"
+              @click="selectFolder(item.fullPath)"
+            >
+              <!-- Expand/Collapse Chevron -->
+              <button
+                v-if="item.hasChildren"
+                @click.stop="toggleFolderExpand(item.fullPath, $event)"
+                class="p-1 hover:text-white text-[#62666d] transition-colors shrink-0"
+                :title="item.isExpanded ? 'Recolher' : 'Expandir'"
+              >
+                <ChevronDown v-if="item.isExpanded" class="h-3 w-3" />
+                <ChevronRight v-else class="h-3 w-3" />
+              </button>
+              <span v-else class="w-5 shrink-0" />
+
+              <!-- Folder Icon -->
+              <FolderOpen
+                v-if="selectedFolder === item.fullPath || item.isExpanded"
+                class="h-3.5 w-3.5 mr-1.5 text-[#828fff] shrink-0"
+              />
+              <Folder
+                v-else
+                class="h-3.5 w-3.5 mr-1.5 text-[#62666d] group-hover:text-[#8a8f98] shrink-0"
+              />
+
+              <!-- Folder Name -->
+              <span class="truncate flex-1 py-1.5 text-xs">{{ item.name }}</span>
+
+              <!-- Count Badge -->
+              <span
+                class="text-[10px] px-1.5 py-0.2 rounded-full font-mono mr-2 shrink-0"
+                :class="selectedFolder === item.fullPath ? 'bg-[#5e6ad2]/30 text-[#828fff]' : 'bg-[#18191a] text-[#62666d]'"
+              >
+                {{ item.flowCount }}
+              </span>
+            </div>
+
+            <!-- Empty state when no folders match search -->
+            <div
+              v-if="folderSearchQuery && visibleTreeItems.length === 0"
+              class="py-4 text-center text-[11px] text-[#62666d]"
+            >
+              Nenhuma pasta encontrada
+            </div>
+          </div>
+        </aside>
+
+        <!-- Right Pane: Flows List & Details -->
+        <main class="flex-1 flex flex-col min-h-0 bg-[#0f1011]">
+          <!-- Breadcrumb Bar -->
+          <div class="px-4 py-2 border-b border-[#23252a] bg-[#0d0e0f] flex items-center justify-between text-xs">
+            <div class="flex items-center space-x-1.5 text-[#8a8f98] truncate">
+              <span class="text-[11px] uppercase font-semibold text-[#62666d]">Pasta:</span>
+              <span v-if="selectedFolder === 'all'" class="font-medium text-white">Todos os Fluxos</span>
+              <template v-else>
+                <span
+                  v-for="(seg, idx) in selectedFolder.split('/')"
+                  :key="idx"
+                  class="flex items-center space-x-1.5"
+                >
+                  <span v-if="idx > 0" class="text-[#3e3e44]">/</span>
+                  <span :class="idx === selectedFolder.split('/').length - 1 ? 'font-medium text-[#828fff]' : 'text-[#8a8f98]'">
+                    {{ seg }}
+                  </span>
+                </span>
+              </template>
+            </div>
+
+            <span class="text-[11px] text-[#62666d] font-mono shrink-0">
+              {{ filteredFlows.length }} {{ filteredFlows.length === 1 ? 'fluxo' : 'fluxos' }}
+            </span>
+          </div>
+
+          <!-- Flows List -->
+          <div class="flex-1 overflow-y-auto p-4 space-y-3">
         <div
           v-if="filteredFlows.length === 0"
           class="py-12 text-center text-xs text-[#62666d] space-y-2"
@@ -537,6 +747,8 @@ function onCreateNewFlow() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
+</div>
+</div>
 </template>
