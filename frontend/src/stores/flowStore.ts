@@ -218,7 +218,9 @@ export const useFlowStore = defineStore('flow', () => {
     selectedNodeId.value = null
   }
 
-  function loadTemplate(templateType: 'http_enrich' | 'webhook_flow' | 'python_pipeline'): void {
+  function loadTemplate(
+    templateType: 'http_enrich' | 'webhook_flow' | 'python_pipeline' | 'if_condition_flow' | 'paginated_api_flow'
+  ): void {
     if (templateType === 'http_enrich') {
       flowId.value = 'flow-http-enrich'
       flowName.value = 'Enriquecimento de Dados HTTP'
@@ -292,8 +294,114 @@ export const useFlowStore = defineStore('flow', () => {
           }
         }
       ]
+    } else if (templateType === 'if_condition_flow') {
+      flowId.value = 'flow-if-condition'
+      flowName.value = 'Decisão Condicional (IF / Else)'
+      flowDescription.value = 'Fluxo de decisão lógica onde apenas o ramo correspondente à condição é executado.'
+      const n1Id = 'trigger-1'
+      const n2Id = 'if-1'
+      const n3Id = 'tf-true'
+      const n4Id = 'tf-false'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'ManualTriggerComponent',
+          position: { x: 80, y: 200 },
+          data: {
+            inputs: {
+              initial_payload: { score: 85, user: 'Alice', status: 'pending' }
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'IfConditionComponent',
+          position: { x: 420, y: 200 },
+          data: {
+            inputs: {
+              expression: "data.get('score', 0) >= 70"
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'JsonTransformComponent',
+          position: { x: 780, y: 100 },
+          data: {
+            inputs: {
+              expression: "dict(status='aprovado', score=payload.get('score'), user=payload.get('user'))"
+            }
+          }
+        },
+        {
+          id: n4Id,
+          type: 'JsonTransformComponent',
+          position: { x: 780, y: 320 },
+          data: {
+            inputs: {
+              expression: "dict(status='rejeitado', score=payload.get('score'), user=payload.get('user'))"
+            }
+          }
+        }
+      ]
       edges.value = [
-        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'context' }
+        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'input_data' },
+        { id: 'e2', source: n2Id, sourceHandle: 'true_branch', target: n3Id, targetHandle: 'input_data' },
+        { id: 'e3', source: n2Id, sourceHandle: 'false_branch', target: n4Id, targetHandle: 'input_data' },
+      ]
+    } else if (templateType === 'paginated_api_flow') {
+      flowId.value = 'flow-paginated-api'
+      flowName.value = 'API Paginada com Loop & Break'
+      flowDescription.value = 'Consome APIs REST paginadas iterando páginas até a última ou condição de parada (break), consolidando o JSON completo.'
+      const n1Id = 'trigger-1'
+      const n2Id = 'page-http-1'
+      const n3Id = 'summary-1'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'ManualTriggerComponent',
+          position: { x: 80, y: 180 },
+          data: {
+            inputs: {
+              initial_payload: { sort: 'updated', direction: 'desc' }
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'PaginatedHttpComponent',
+          position: { x: 440, y: 180 },
+          data: {
+            inputs: {
+              url: 'https://api.github.com/orgs/vuejs/repos',
+              method: 'GET',
+              pagination_mode: 'page_number',
+              page_param: 'page',
+              limit_param: 'per_page',
+              page_size: 10,
+              start_page: 1,
+              items_path: '',
+              break_condition: 'total_items >= 25',
+              max_pages: 5,
+              headers: { 'User-Agent': 'FlowBuild/1.0' },
+              params: {}
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'JsonTransformComponent',
+          position: { x: 820, y: 180 },
+          data: {
+            inputs: {
+              expression: "dict(total_registros=len(payload), repositorios=[r.get('name') for r in payload if isinstance(r, dict)])"
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'params' },
+        { id: 'e2', source: n2Id, sourceHandle: 'all_items', target: n3Id, targetHandle: 'input_data' },
       ]
     } else {
       flowId.value = 'flow-webhook-transform'

@@ -15,7 +15,8 @@ import {
   Clock,
   RotateCw,
   Snowflake,
-  RefreshCw
+  RefreshCw,
+  ExternalLink,
 } from 'lucide-vue-next'
 import { useExecutionStore } from '../stores/executionStore'
 import { useFlowStore } from '../stores/flowStore'
@@ -25,6 +26,8 @@ const flowStore = useFlowStore()
 
 const copied = ref(false)
 const isRefreshingHistory = ref(false)
+const expandedExecutionId = ref<string | null>(null)
+const copiedNodeOutputId = ref<string | null>(null)
 let historyPollTimer: ReturnType<typeof setInterval> | null = null
 
 const activeTab = computed({
@@ -38,15 +41,53 @@ const isOpen = computed({
 })
 
 const completedNodesList = computed(() => {
-  return flowStore.nodes.map((node) => {
-    const state = executionStore.getNodeState(node.id)
-    return {
+  const list: Array<{ id: string; type: string; state: any }> = []
+  const seenNodeIds = new Set<string>()
+
+  for (const node of flowStore.nodes) {
+    seenNodeIds.add(node.id)
+    list.push({
       id: node.id,
       type: node.type,
-      state
+      state: executionStore.getNodeState(node.id),
+    })
+  }
+
+  for (const [nodeId, state] of Object.entries(executionStore.nodeStates)) {
+    if (!seenNodeIds.has(nodeId)) {
+      list.push({
+        id: nodeId,
+        type: 'Nó Executado',
+        state,
+      })
     }
-  })
+  }
+
+  return list
 })
+
+function toggleExpandExecution(id: string) {
+  expandedExecutionId.value = expandedExecutionId.value === id ? null : id
+}
+
+function getNodeLabel(nodeId: string): string {
+  const node = flowStore.nodes.find((n) => n.id === nodeId)
+  return node ? `${node.type} (${nodeId})` : nodeId
+}
+
+function copyNodeOutput(key: string, data: any) {
+  navigator.clipboard.writeText(typeof data === 'string' ? data : JSON.stringify(data, null, 2))
+  copiedNodeOutputId.value = key
+  setTimeout(() => {
+    copiedNodeOutputId.value = null
+  }, 2000)
+}
+
+function loadExecutionIntoOutputs(record: any) {
+  if (!record.node_states) return
+  executionStore.loadExecution(record)
+  activeTab.value = 'outputs'
+}
 
 function startHistoryPolling() {
   stopHistoryPolling()
@@ -310,6 +351,7 @@ async function onRetry(execId: string, mode: 'freeze' | 'unfreeze') {
                   item.state.status === 'completed' ? 'bg-[#27a644]/15 text-[#27a644]' : '',
                   item.state.status === 'failed' ? 'bg-rose-500/15 text-rose-400' : '',
                   item.state.status === 'running' ? 'bg-[#5e6ad2]/15 text-[#828fff]' : '',
+                  item.state.status === 'skipped' ? 'bg-amber-500/15 text-amber-400' : '',
                   item.state.status === 'idle' ? 'bg-[#23252a] text-[#8a8f98]' : '',
                 ]"
               >
@@ -389,60 +431,201 @@ async function onRetry(execId: string, mode: 'freeze' | 'unfreeze') {
         <div
           v-for="record in executionStore.historyList"
           :key="record.id"
-          class="p-3 rounded-lg border border-[#23252a] bg-[#141516] flex items-center justify-between hover:border-[#3e3e44] transition-all"
+          class="rounded-lg border border-[#23252a] bg-[#141516] overflow-hidden hover:border-[#3e3e44] transition-all"
         >
-          <div class="flex items-center space-x-3 min-w-0">
-            <!-- Status Badge -->
-            <span
-              class="px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0"
-              :class="[
-                record.status === 'completed' ? 'bg-[#27a644]/15 text-[#27a644]' : '',
-                record.status === 'failed' ? 'bg-rose-500/15 text-rose-400' : '',
-                record.status === 'running' ? 'bg-[#5e6ad2]/15 text-[#828fff]' : '',
-              ]"
-            >
-              {{ record.status }}
-            </span>
+          <!-- Main Card Header -->
+          <div
+            @click="toggleExpandExecution(record.id)"
+            class="p-3 flex items-center justify-between cursor-pointer select-none bg-[#141516] hover:bg-[#18191a] transition-colors"
+          >
+            <div class="flex items-center space-x-3 min-w-0">
+              <!-- Expand / Collapse chevron -->
+              <button
+                class="text-[#8a8f98] hover:text-white p-0.5 rounded transition-transform"
+                :title="expandedExecutionId === record.id ? 'Recolher detalhes' : 'Ver resultados dos nós'"
+              >
+                <ChevronDown
+                  class="h-4 w-4 transition-transform duration-200"
+                  :class="expandedExecutionId === record.id ? 'rotate-180 text-[#5e6ad2]' : ''"
+                />
+              </button>
 
-            <div class="min-w-0">
-              <div class="flex items-center space-x-2 text-xs font-semibold text-white truncate">
-                <span>{{ record.flow_id }}</span>
-                <span class="text-[10px] font-mono text-[#8a8f98] px-1.5 py-0.2 rounded bg-[#090a0b] border border-[#23252a]">
-                  {{ record.trigger_type }}
-                </span>
+              <!-- Status Badge -->
+              <span
+                class="px-2 py-0.5 rounded text-[10px] font-bold uppercase shrink-0"
+                :class="[
+                  record.status === 'completed' ? 'bg-[#27a644]/15 text-[#27a644]' : '',
+                  record.status === 'failed' ? 'bg-rose-500/15 text-rose-400' : '',
+                  record.status === 'running' ? 'bg-[#5e6ad2]/15 text-[#828fff]' : '',
+                ]"
+              >
+                {{ record.status }}
+              </span>
+
+              <div class="min-w-0">
+                <div class="flex items-center space-x-2 text-xs font-semibold text-white truncate">
+                  <span>{{ record.flow_id }}</span>
+                  <span class="text-[10px] font-mono text-[#8a8f98] px-1.5 py-0.2 rounded bg-[#090a0b] border border-[#23252a]">
+                    {{ record.trigger_type }}
+                  </span>
+                  <!-- Count of completed nodes -->
+                  <span
+                    v-if="record.node_states && Object.keys(record.node_states).length"
+                    class="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.2 rounded"
+                  >
+                    {{ Object.keys(record.node_states).length }} nós
+                  </span>
+                </div>
+                <div class="flex items-center space-x-3 text-[10px] text-[#8a8f98] pt-0.5 font-mono">
+                  <span>{{ record.started_at ? new Date(record.started_at).toLocaleTimeString() : '' }}</span>
+                  <span>•</span>
+                  <span>{{ record.duration_ms ? `${record.duration_ms.toFixed(0)}ms` : '0ms' }}</span>
+                  <span v-if="record.error_message" class="text-rose-400 truncate">• {{ record.error_message }}</span>
+                </div>
               </div>
-              <div class="flex items-center space-x-3 text-[10px] text-[#8a8f98] pt-0.5 font-mono">
-                <span>{{ record.started_at ? new Date(record.started_at).toLocaleTimeString() : '' }}</span>
-                <span>•</span>
-                <span>{{ record.duration_ms ? `${record.duration_ms.toFixed(0)}ms` : '0ms' }}</span>
-                <span v-if="record.error_message" class="text-rose-400 truncate">• {{ record.error_message }}</span>
-              </div>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="flex items-center space-x-2 shrink-0" @click.stop>
+              <!-- Toggle Details Button -->
+              <button
+                @click="toggleExpandExecution(record.id)"
+                class="text-xs px-2.5 py-1 rounded bg-[#090a0b] hover:bg-[#1f2024] border border-[#23252a] text-[#d0d6e0] flex items-center space-x-1 transition-colors"
+                title="Ver nós e outputs desta execução"
+              >
+                <Layers class="h-3 w-3 text-cyan-400" />
+                <span>{{ expandedExecutionId === record.id ? 'Ocultar Nós' : 'Ver Resultados' }}</span>
+              </button>
+
+              <!-- Freeze Retry -->
+              <button
+                @click="onRetry(record.id, 'freeze')"
+                :disabled="executionStore.isRunning"
+                class="text-xs px-2.5 py-1 rounded bg-[#090a0b] hover:bg-[#5e6ad2]/20 border border-[#5e6ad2]/40 text-[#828fff] flex items-center space-x-1 transition-all disabled:opacity-50"
+                title="Retry Freeze: Re-executa preservando upstream"
+              >
+                <Snowflake class="h-3 w-3 text-[#828fff]" />
+                <span class="hidden sm:inline">Retry Freeze</span>
+              </button>
+
+              <!-- Unfreeze Retry -->
+              <button
+                @click="onRetry(record.id, 'unfreeze')"
+                :disabled="executionStore.isRunning"
+                class="text-xs px-2.5 py-1 rounded bg-[#23252a] hover:bg-[#34343a] text-white flex items-center space-x-1 transition-all disabled:opacity-50"
+                title="Retry Unfreeze: Re-executa do zero"
+              >
+                <RotateCw class="h-3 w-3" />
+                <span class="hidden sm:inline">Retry Unfreeze</span>
+              </button>
             </div>
           </div>
 
-          <!-- Retry Buttons (Freeze vs Unfreeze) -->
-          <div class="flex items-center space-x-2 shrink-0">
-            <!-- Freeze Retry: Only re-executes failed nodes, preserving successful upstream data -->
-            <button
-              @click="onRetry(record.id, 'freeze')"
-              :disabled="executionStore.isRunning"
-              class="text-xs px-2.5 py-1 rounded bg-[#090a0b] hover:bg-[#5e6ad2]/20 border border-[#5e6ad2]/40 text-[#828fff] flex items-center space-x-1 transition-all disabled:opacity-50"
-              title="Retry Freeze: Re-executa apenas nós pendentes/com erro, preservando saídas dos nós bem-sucedidos anteriores (sem re-cobrança de APIs)"
-            >
-              <Snowflake class="h-3 w-3 text-[#828fff]" />
-              <span>Retry Freeze</span>
-            </button>
+          <!-- Expanded Node States & Payload Panel -->
+          <div
+            v-if="expandedExecutionId === record.id"
+            class="p-3.5 bg-[#0a0b0d] border-t border-[#23252a] space-y-3"
+          >
+            <!-- Quick Action Bar -->
+            <div class="flex items-center justify-between text-xs pb-1 border-b border-[#23252a]/60 font-mono">
+              <span class="text-[#8a8f98]">ID: <span class="text-white">{{ record.id }}</span></span>
+              <button
+                @click="loadExecutionIntoOutputs(record)"
+                class="text-[11px] text-[#5e6ad2] hover:text-[#828fff] flex items-center space-x-1 transition-colors font-sans"
+              >
+                <ExternalLink class="h-3 w-3" />
+                <span>Inspecionar no painel "Resultados dos Nós"</span>
+              </button>
+            </div>
 
-            <!-- Unfreeze Retry: Re-executes from scratch -->
-            <button
-              @click="onRetry(record.id, 'unfreeze')"
-              :disabled="executionStore.isRunning"
-              class="text-xs px-2.5 py-1 rounded bg-[#23252a] hover:bg-[#34343a] text-white flex items-center space-x-1 transition-all disabled:opacity-50"
-              title="Retry Unfreeze: Re-executa todo o fluxo do zero com os dados iniciais"
+            <!-- Initial Payload (if present) -->
+            <div
+              v-if="record.initial_payload && Object.keys(record.initial_payload).length > 0"
+              class="rounded bg-[#141516] border border-[#23252a] p-2.5 space-y-1.5"
             >
-              <RotateCw class="h-3 w-3" />
-              <span>Retry Unfreeze</span>
-            </button>
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono text-[#8a8f98] uppercase font-semibold">Payload Inicial (Trigger Input)</span>
+                <button
+                  @click="copyNodeOutput(`init-${record.id}`, record.initial_payload)"
+                  class="text-[10px] text-[#8a8f98] hover:text-white flex items-center space-x-1"
+                >
+                  <Check v-if="copiedNodeOutputId === `init-${record.id}`" class="h-2.5 w-2.5 text-[#27a644]" />
+                  <Copy v-else class="h-2.5 w-2.5" />
+                  <span>{{ copiedNodeOutputId === `init-${record.id}` ? 'Copiado' : 'Copiar' }}</span>
+                </button>
+              </div>
+              <pre class="text-[11px] font-mono p-2 rounded bg-[#090a0b] text-cyan-300 border border-[#23252a] max-h-36 overflow-y-auto leading-relaxed">{{ JSON.stringify(record.initial_payload, null, 2) }}</pre>
+            </div>
+
+            <!-- Node States Grid -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-white flex items-center space-x-1.5">
+                  <Layers class="h-3.5 w-3.5 text-[#5e6ad2]" />
+                  <span>Resultados dos Nós Executados</span>
+                </span>
+                <span class="text-[10px] font-mono text-[#8a8f98]">
+                  {{ record.node_states ? Object.keys(record.node_states).length : 0 }} nós registrados
+                </span>
+              </div>
+
+              <div
+                v-if="!record.node_states || Object.keys(record.node_states).length === 0"
+                class="text-xs text-[#62666d] py-3 text-center italic"
+              >
+                Nenhum estado de nó individual foi gravado para esta execução.
+              </div>
+
+              <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <div
+                  v-for="[nodeId, nodeState] in Object.entries(record.node_states)"
+                  :key="nodeId"
+                  class="rounded-lg border border-[#23252a] bg-[#141516] p-2.5 flex flex-col space-y-1.5"
+                >
+                  <div class="flex items-center justify-between border-b border-[#23252a]/80 pb-1.5">
+                    <span class="text-xs font-medium text-white truncate" :title="getNodeLabel(nodeId)">
+                      {{ getNodeLabel(nodeId) }}
+                    </span>
+                    <span
+                      class="text-[9px] font-bold px-1.5 py-0.2 rounded uppercase shrink-0"
+                      :class="[
+                        (nodeState as any).status === 'completed' ? 'bg-[#27a644]/15 text-[#27a644]' : '',
+                        (nodeState as any).status === 'failed' ? 'bg-rose-500/15 text-rose-400' : '',
+                        (nodeState as any).status === 'skipped' ? 'bg-amber-500/15 text-amber-400' : 'bg-[#23252a] text-[#8a8f98]',
+                      ]"
+                    >
+                      {{ (nodeState as any).status }}
+                    </span>
+                  </div>
+
+                  <div class="flex-1">
+                    <div v-if="(nodeState as any).output !== undefined" class="space-y-1">
+                      <div class="flex items-center justify-between text-[10px] font-mono text-[#8a8f98]">
+                        <span class="uppercase">Output:</span>
+                        <button
+                          @click="copyNodeOutput(`${record.id}-${nodeId}`, (nodeState as any).output)"
+                          class="hover:text-white flex items-center space-x-1"
+                        >
+                          <Check v-if="copiedNodeOutputId === `${record.id}-${nodeId}`" class="h-2.5 w-2.5 text-[#27a644]" />
+                          <Copy v-else class="h-2.5 w-2.5" />
+                          <span>{{ copiedNodeOutputId === `${record.id}-${nodeId}` ? 'Copiado' : 'Copiar' }}</span>
+                        </button>
+                      </div>
+                      <pre class="text-[11px] font-mono p-2 rounded bg-[#090a0b] text-emerald-400 border border-[#23252a] max-h-36 overflow-y-auto leading-relaxed">{{ JSON.stringify((nodeState as any).output, null, 2) }}</pre>
+                    </div>
+
+                    <div v-else-if="(nodeState as any).error" class="space-y-1">
+                      <span class="text-[10px] font-mono text-rose-400 uppercase">Error:</span>
+                      <pre class="text-[11px] font-mono p-2 rounded bg-rose-500/10 text-rose-300 border border-rose-500/30 max-h-36 overflow-y-auto leading-relaxed">{{ (nodeState as any).error }}</pre>
+                    </div>
+
+                    <div v-else class="text-[11px] text-[#62666d] italic py-1">
+                      Sem saída registrada
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -8,6 +8,7 @@ class ExecutionContext:
         self.status: str = "pending"  # pending, running, completed, failed
         self.results: dict[str, Any] = {}
         self.errors: dict[str, str] = {}
+        self.skipped: set[str] = set()
         self.start_time: float = 0.0
         self.end_time: float = 0.0
 
@@ -22,6 +23,9 @@ class ExecutionContext:
         self.errors[node_id] = error
         self.status = "failed"
 
+    def set_skipped(self, node_id: str) -> None:
+        self.skipped.add(node_id)
+
     def complete(self) -> None:
         if self.status != "failed":
             self.status = "completed"
@@ -33,5 +37,6 @@ class ExecutionContext:
             "status": self.status,
             "results": self.results,
             "errors": self.errors,
+            "skipped": list(self.skipped),
             "duration": round(self.end_time - self.start_time, 3) if self.end_time else 0.0,
         }

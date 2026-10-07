@@ -14,6 +14,7 @@ from backend.app.components.inputs import (
 )
 from backend.app.components.outputs import Output
 from backend.app.components.registry import ComponentRegistry
+from backend.app.components.builtins.actions import JsonTransformComponent
 
 
 class MockEchoComponent(BaseComponent):
@@ -93,3 +94,23 @@ def test_registry_registration_and_retrieval():
     catalog = registry.to_catalog()
     assert len(catalog) == 1
     assert catalog[0]["name"] == "MockEchoComponent"
+
+
+@pytest.mark.asyncio
+async def test_json_transform_with_isinstance_and_rich_builtins():
+    """Verifies that JsonTransformComponent evaluates expressions with isinstance, sum, max, etc."""
+    comp = JsonTransformComponent(
+        inputs={
+            "input_data": [
+                {"name": "repo-a", "stars": 100},
+                {"name": "repo-b", "stars": 250},
+                "not-a-dict",
+                42,
+            ],
+            "expression": "dict(total=len(payload), valid=[r.get('name') for r in payload if isinstance(r, dict)], max_stars=max([r.get('stars', 0) for r in payload if isinstance(r, dict)]))",
+        }
+    )
+    result = await comp.transform()
+    assert result["total"] == 4
+    assert result["valid"] == ["repo-a", "repo-b"]
+    assert result["max_stars"] == 250

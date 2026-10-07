@@ -16,12 +16,14 @@ import {
 import { useFlowStore } from '../stores/flowStore'
 import { useExecutionStore } from '../stores/executionStore'
 import { useVariablesStore } from '../stores/variablesStore'
+import { useToastStore } from '../stores/toastStore'
 import FlowsModal from './FlowsModal.vue'
 import VariablesModal from './VariablesModal.vue'
 
 const flowStore = useFlowStore()
 const executionStore = useExecutionStore()
 const varStore = useVariablesStore()
+const toast = useToastStore()
 
 const showTemplatesDropdown = ref(false)
 const isFlowsModalOpen = ref(false)
@@ -32,6 +34,7 @@ async function onSaveFlow() {
   isSaving.value = true
   await flowStore.publishOrSaveFlow()
   isSaving.value = false
+  toast.success(`Fluxo "${flowStore.flowName}" salvo com sucesso!`, 'Salvo')
 }
 
 async function onRunFlow() {
@@ -47,7 +50,7 @@ async function onRunFlow() {
       level: 'warn',
       message: `Bloqueio de Execução: ${validation.error}`,
     })
-    alert(validation.error)
+    toast.warn(validation.error || 'Trigger inicial obrigatório.', 'Atenção')
     return
   }
 
@@ -64,6 +67,7 @@ function onExportJson() {
   document.body.appendChild(downloadAnchor)
   downloadAnchor.click()
   downloadAnchor.remove()
+  toast.success('Arquivo JSON exportado com sucesso.', 'Exportação')
 }
 
 function onTriggerImport() {
@@ -81,15 +85,18 @@ function onFileSelected(event: Event) {
       const content = e.target?.result as string
       const parsed = JSON.parse(content)
       flowStore.loadFlow(parsed)
+      toast.success(`Fluxo "${parsed.name || 'importado'}" carregado com sucesso!`, 'Importado')
     } catch {
-      alert('Arquivo JSON inválido. Verifique o formato do fluxo.')
+      toast.error('Arquivo JSON inválido. Verifique o formato do fluxo.', 'Erro na Importação')
     }
   }
   reader.readAsText(file)
   target.value = ''
 }
 
-function onSelectTemplate(type: 'http_enrich' | 'webhook_flow' | 'python_pipeline') {
+function onSelectTemplate(
+  type: 'http_enrich' | 'webhook_flow' | 'python_pipeline' | 'if_condition_flow' | 'paginated_api_flow'
+) {
   flowStore.loadTemplate(type)
   showTemplatesDropdown.value = false
 }
@@ -241,6 +248,20 @@ function onClearCanvas() {
           >
             <span class="font-medium text-cyan-400">Recepção Webhook Lead</span>
             <span class="text-[10px] text-[#8a8f98]">Webhook Trigger → Normalização de Payload</span>
+          </button>
+          <button
+            @click="onSelectTemplate('if_condition_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-amber-400">Decisão Condicional (IF / Else)</span>
+            <span class="text-[10px] text-[#8a8f98]">Disparo Manual → IF Condition → True/False Branch</span>
+          </button>
+          <button
+            @click="onSelectTemplate('paginated_api_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-emerald-400">API Paginada com Loop & Break</span>
+            <span class="text-[10px] text-[#8a8f98]">Disparo Manual → Paginated HTTP → Consolidar JSON</span>
           </button>
         </div>
       </div>

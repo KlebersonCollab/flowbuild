@@ -4,7 +4,12 @@ from typing import Any, ClassVar
 from croniter import croniter
 
 from backend.app.components.base import BaseComponent
-from backend.app.components.inputs import BaseInput, DictInput, StrInput
+from backend.app.components.inputs import (
+    BaseInput,
+    DictInput,
+    SelectInput,
+    StrInput,
+)
 from backend.app.components.outputs import Output
 
 
@@ -46,9 +51,49 @@ class WebhookTriggerComponent(BaseComponent):
     icon: ClassVar[str] = "webhook"
 
     inputs: ClassVar[list[BaseInput]] = [
-        StrInput(name="path", label="Webhook Path", default="/webhook/default"),
-        StrInput(name="method", label="HTTP Method", default="POST"),
-        StrInput(name="secret_token", label="Secret Token (Optional)", default="", placeholder="Bearer secret or X-Hub-Signature"),
+        StrInput(name="path", label="Webhook Path", default="/webhook/default", placeholder="/webhook/meu-endpoint"),
+        SelectInput(
+            name="method",
+            label="HTTP Method",
+            options=["POST", "GET", "PUT", "DELETE", "PATCH", "ANY"],
+            default="POST",
+            description="Allowed HTTP method: POST, GET, PUT, DELETE, PATCH, or ANY",
+        ),
+        SelectInput(
+            name="auth_type",
+            label="Autenticação / Segurança",
+            options=["none", "api_key_header", "bearer", "api_key_query"],
+            default="none",
+            description="Método de proteção do webhook: Sem autenticação (none), Header customizado (api_key_header), Bearer Token (bearer) ou Query Param (api_key_query)",
+        ),
+        StrInput(
+            name="auth_header_name",
+            label="Nome do Header (se API Key)",
+            default="X-API-Key",
+            placeholder="X-API-Key ou X-Webhook-Token",
+            description="Nome do cabeçalho HTTP onde a API key deve ser enviada",
+        ),
+        StrInput(
+            name="auth_query_param",
+            label="Nome do Query Param (se Query)",
+            default="api_key",
+            placeholder="api_key ou token",
+            description="Nome do parâmetro de URL (?api_key=...)",
+        ),
+        StrInput(
+            name="auth_token",
+            label="Token / Segredo Esperado",
+            default="",
+            placeholder="Ex: minha_chave_secreta_123",
+            description="Valor secreto que deve ser enviado para autorizar a chamada",
+        ),
+        StrInput(
+            name="secret_token",
+            label="Secret Token (Legado)",
+            default="",
+            placeholder="Opcional - compatibilidade legada",
+            description="Fallback legado de token",
+        ),
         DictInput(name="payload", label="Incoming Payload", default={}),
     ]
 
@@ -59,11 +104,13 @@ class WebhookTriggerComponent(BaseComponent):
 
     def __init__(self, inputs: dict[str, Any] | None = None):
         super().__init__(inputs)
-        self._headers: dict[str, Any] = {}
+        self._headers: dict[str, Any] = self._raw_inputs.get("_headers", {})
 
     async def execute(self, **kwargs: Any) -> dict[str, Any]:
         if kwargs:
-            self.inputs.update(kwargs)
+            self._raw_inputs.update(kwargs)
+            if "_headers" in kwargs:
+                self._headers = kwargs["_headers"]
         return await self.receive()
 
     async def receive(self) -> dict[str, Any]:

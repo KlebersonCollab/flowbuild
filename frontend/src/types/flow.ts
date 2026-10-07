@@ -71,7 +71,7 @@ export interface FlowModel {
   edges: FlowEdge[]
 }
 
-export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'failed'
+export type ExecutionStatus = 'idle' | 'running' | 'completed' | 'failed' | 'skipped'
 
 export interface NodeExecutionState {
   status: ExecutionStatus

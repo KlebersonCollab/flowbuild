@@ -211,6 +211,7 @@ function copyOutput() {
               nodeState?.status === 'completed' ? 'bg-[#27a644]/20 text-[#27a644]' : '',
               nodeState?.status === 'failed' ? 'bg-rose-500/20 text-rose-400' : '',
               nodeState?.status === 'running' ? 'bg-[#5e6ad2]/20 text-[#828fff] animate-pulse' : '',
+              nodeState?.status === 'skipped' ? 'bg-amber-500/20 text-amber-400' : '',
               nodeState?.status === 'idle' ? 'bg-[#23252a] text-[#8a8f98]' : '',
             ]"
           >

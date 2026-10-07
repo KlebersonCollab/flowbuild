@@ -1,6 +1,7 @@
 from backend.app.components.builtins.actions import (
     HttpRequestComponent,
     JsonTransformComponent,
+    PaginatedHttpComponent,
     PythonScriptComponent,
 )
 from backend.app.components.builtins.logic import (
@@ -23,6 +24,7 @@ def register_all_builtins() -> None:
     registry.register(WebhookTriggerComponent)
     registry.register(CronTriggerComponent)
     registry.register(HttpRequestComponent)
+    registry.register(PaginatedHttpComponent)
     registry.register(PythonScriptComponent)
     registry.register(JsonTransformComponent)
     registry.register(IfConditionComponent)
@@ -35,6 +37,7 @@ __all__ = [
     "IfConditionComponent",
     "JsonTransformComponent",
     "ManualTriggerComponent",
+    "PaginatedHttpComponent",
     "PythonScriptComponent",
     "VariableComponent",
     "WebhookTriggerComponent",

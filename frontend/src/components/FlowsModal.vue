@@ -16,8 +16,10 @@ import {
   Loader2,
   FileText,
   Pencil,
+  Terminal,
 } from 'lucide-vue-next'
 import { useFlowStore } from '../stores/flowStore'
+import { getWebhookInfo, getWebhookAuthBadge, getWebhookCurlCommand } from '../utils/webhook'
 
 const props = defineProps<{
   isOpen: boolean
@@ -29,6 +31,7 @@ const emit = defineEmits<{
 
 const flowStore = useFlowStore()
 const copiedWebhookId = ref<string | null>(null)
+const copiedCurlId = ref<string | null>(null)
 const isSaving = ref(false)
 const selectedFolder = ref<string>('all')
 const promotingFlowId = ref<string | null>(null)
@@ -71,12 +74,6 @@ const filteredFlows = computed(() => {
   })
 })
 
-function getWebhookPath(flowData: any): string | null {
-  const node = flowData?.nodes?.find((n: any) => n.type === 'WebhookTriggerComponent')
-  if (!node) return null
-  const path = node.data?.inputs?.path || 'webhook/default'
-  return path.startsWith('/') ? path.slice(1) : path
-}
 
 function copyWebhookUrl(flowId: string, path: string) {
   const fullUrl = `http://localhost:8000/api/v1/webhooks/${path}`
@@ -84,6 +81,16 @@ function copyWebhookUrl(flowId: string, path: string) {
   copiedWebhookId.value = flowId
   setTimeout(() => {
     copiedWebhookId.value = null
+  }, 2000)
+}
+
+function copyWebhookCurl(flowId: string, info: any) {
+  const fullUrl = `http://localhost:8000/api/v1/webhooks/${info.path}`
+  const curl = getWebhookCurlCommand(fullUrl, info)
+  navigator.clipboard.writeText(curl)
+  copiedCurlId.value = flowId
+  setTimeout(() => {
+    copiedCurlId.value = null
   }, 2000)
 }
 
@@ -489,21 +496,44 @@ function onCreateNewFlow() {
 
           <!-- Webhook endpoint banner if present -->
           <div
-            v-if="getWebhookPath(flow.flow_data)"
-            class="flex items-center justify-between p-2 rounded bg-[#090a0b] border border-[#23252a] text-[11px] font-mono text-[#8a8f98]"
+            v-if="getWebhookInfo(flow.flow_data)"
+            class="flex flex-col sm:flex-row sm:items-center justify-between p-2.5 rounded bg-[#090a0b] border border-[#23252a] text-[11px] font-mono text-[#8a8f98] gap-2"
           >
-            <div class="flex items-center space-x-1.5 truncate">
-              <Webhook class="h-3 w-3 text-cyan-400 shrink-0" />
-              <span class="text-white truncate">/api/v1/webhooks/{{ getWebhookPath(flow.flow_data) }}</span>
+            <div class="flex flex-wrap items-center gap-1.5 min-w-0">
+              <Webhook class="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0">
+                {{ getWebhookInfo(flow.flow_data)?.method }}
+              </span>
+              <span
+                class="text-[10px] font-semibold px-1.5 py-0.5 rounded border shrink-0 flex items-center space-x-1"
+                :class="getWebhookAuthBadge(getWebhookInfo(flow.flow_data)!).class"
+                :title="getWebhookInfo(flow.flow_data)?.authType === 'none' ? 'Webhook público sem restrição' : 'Requer autenticação configurada'"
+              >
+                <span>{{ getWebhookInfo(flow.flow_data)?.authType === 'none' ? '🔓' : '🔒' }}</span>
+                <span>{{ getWebhookAuthBadge(getWebhookInfo(flow.flow_data)!).label }}</span>
+              </span>
+              <span class="text-white truncate">/api/v1/webhooks/{{ getWebhookInfo(flow.flow_data)?.path }}</span>
             </div>
-            <button
-              @click="copyWebhookUrl(flow.id, getWebhookPath(flow.flow_data)!)"
-              class="px-2 py-0.5 rounded bg-[#18191a] hover:bg-[#23252a] text-xs text-white flex items-center space-x-1 shrink-0 transition-colors"
-            >
-              <Check v-if="copiedWebhookId === flow.id" class="h-3 w-3 text-[#27a644]" />
-              <Copy v-else class="h-3 w-3" />
-              <span>{{ copiedWebhookId === flow.id ? 'Copiado!' : 'Copiar URL' }}</span>
-            </button>
+            <div class="flex items-center space-x-1.5 shrink-0 self-end sm:self-auto">
+              <button
+                @click="copyWebhookUrl(flow.id, getWebhookInfo(flow.flow_data)!.path)"
+                class="px-2 py-0.5 rounded bg-[#18191a] hover:bg-[#23252a] text-xs text-white flex items-center space-x-1 shrink-0 transition-colors border border-[#2e3035]"
+                title="Copiar URL completa do webhook"
+              >
+                <Check v-if="copiedWebhookId === flow.id" class="h-3 w-3 text-[#27a644]" />
+                <Copy v-else class="h-3 w-3" />
+                <span>{{ copiedWebhookId === flow.id ? 'Copiado!' : 'Copiar URL' }}</span>
+              </button>
+              <button
+                @click="copyWebhookCurl(flow.id, getWebhookInfo(flow.flow_data)!)"
+                class="px-2 py-0.5 rounded bg-[#18191a] hover:bg-[#23252a] text-xs text-white flex items-center space-x-1 shrink-0 transition-colors border border-[#2e3035]"
+                title="Copiar comando cURL com autenticação e headers configurados"
+              >
+                <Check v-if="copiedCurlId === flow.id" class="h-3 w-3 text-[#27a644]" />
+                <Terminal v-else class="h-3 w-3 text-amber-400" />
+                <span>{{ copiedCurlId === flow.id ? 'cURL Copiado!' : 'Copiar cURL' }}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

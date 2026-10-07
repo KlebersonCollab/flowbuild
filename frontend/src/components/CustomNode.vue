@@ -10,6 +10,7 @@ import {
   Sliders,
   CheckCircle2,
   XCircle,
+  SkipForward,
   Trash2,
   ChevronDown,
   ChevronUp
@@ -134,6 +135,8 @@ const statusClass = computed(() => {
       return 'border-[#27a644] ring-1 ring-[#27a644]/40 shadow-xl shadow-[#27a644]/15'
     case 'failed':
       return 'border-rose-500 ring-1 ring-rose-500/50 shadow-xl shadow-rose-500/25'
+    case 'skipped':
+      return 'border-amber-500/40 ring-1 ring-amber-500/20 opacity-70 bg-[#0f1011]/80'
     default:
       return props.selected
         ? 'border-[#5e6ad2] ring-2 ring-[#5e6ad2]/60 shadow-xl'
@@ -207,6 +210,14 @@ function onDeleteNode(e: Event) {
         >
           <XCircle class="h-3 w-3" />
           <span>ERRO</span>
+        </span>
+        <span
+          v-else-if="nodeState.status === 'skipped'"
+          class="flex items-center space-x-1 text-[10px] font-bold text-amber-400 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-500/30"
+          title="Nó ignorado devido à condição não atendida"
+        >
+          <SkipForward class="h-3 w-3" />
+          <span>PULADO</span>
         </span>
 
         <!-- Expand / Collapse Toggle -->

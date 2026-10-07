@@ -110,16 +110,22 @@ export const useExecutionStore = defineStore('execution', () => {
       case 'node_skipped':
         if (event.node_id) {
           nodeStates.value[event.node_id] = {
-            status: 'failed',
-            error: 'Dependency failed',
+            status: 'skipped',
+            output: { reason: (event as any).reason || 'Condição não atendida' },
           }
+          const reasonLabel = (event as any).reason === 'condition_not_met'
+            ? 'ramificação condicional não selecionada'
+            : (event as any).reason === 'upstream_skipped'
+            ? 'dependência upstream ignorada'
+            : ((event as any).reason || 'condição não atendida')
           structuredLogs.value.push({
             id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             timestamp: timeStr,
             nodeId: event.node_id,
             nodeName: event.type,
-            level: 'warn',
-            message: `Nó ${event.type || event.node_id} ignorado devido a falha prévia.`
+            level: 'info',
+            message: `Nó ${event.type || event.node_id} ignorado (${reasonLabel}).`,
+            output: { reason: (event as any).reason || 'skipped' }
           })
         }
         break
@@ -239,6 +245,20 @@ export const useExecutionStore = defineStore('execution', () => {
     }
   }
 
+  function loadExecution(record: any): void {
+    if (!record || !record.node_states) return
+    nodeStates.value = {}
+    for (const [nodeId, state] of Object.entries(record.node_states as Record<string, any>)) {
+      nodeStates.value[nodeId] = {
+        status: state.status || 'completed',
+        output: state.output,
+        error: state.error,
+        durationMs: state.duration_ms || 0,
+      }
+    }
+    activeDrawerTab.value = 'outputs'
+  }
+
   return {
     isRunning,
     nodeStates,
@@ -254,5 +274,6 @@ export const useExecutionStore = defineStore('execution', () => {
     runFlowStream,
     fetchExecutionHistory,
     retryExecution,
+    loadExecution,
   }
 })

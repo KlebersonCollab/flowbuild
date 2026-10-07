@@ -190,20 +190,36 @@ async def delete_flow(flow_id: str) -> dict[str, Any]:
 
 # --- WEBHOOK ROUTER ---
 
-@router.post("/webhooks/{webhook_path:path}")
+@router.api_route("/webhooks/{webhook_path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def trigger_webhook(webhook_path: str, request: Request) -> dict[str, Any]:
     # Normalize webhook path
     clean_path = webhook_path.strip("/")
-    try:
-        body = await request.json()
-    except Exception:
-        body = {}
+    req_method = request.method.upper()
+    query_params = dict(request.query_params)
+
+    body: dict[str, Any] = {}
+    if req_method in ["POST", "PUT", "PATCH", "DELETE"]:
+        try:
+            raw_body = await request.json()
+            if isinstance(raw_body, dict):
+                body = raw_body
+            elif raw_body is not None:
+                body = {"data": raw_body}
+        except Exception:
+            body = {}
+
+    # If body is empty, ingest query params as payload
+    if not body and query_params:
+        body = dict(query_params)
 
     headers = dict(request.headers)
 
     active_flows = db_manager.list_flows(active_only=True)
     target_flow = None
     target_node_id = None
+    target_node_inputs: dict[str, Any] = {}
+    matched_path_found = False
+    expected_method = None
 
     for flow_rec in active_flows:
         flow_dict = flow_rec.flow_data
@@ -213,14 +229,55 @@ async def trigger_webhook(webhook_path: str, request: Request) -> dict[str, Any]
                 configured_path = node_inputs.get("path", "").strip("/")
                 # Match e.g. "webhook/lead" or "lead"
                 if configured_path == clean_path or configured_path.endswith(clean_path):
-                    target_flow = flow_dict
-                    target_node_id = node.get("id")
-                    break
+                    matched_path_found = True
+                    configured_method = (node_inputs.get("method") or "POST").upper()
+                    expected_method = configured_method
+                    if configured_method in ["ANY", "*"] or configured_method == req_method:
+                        target_flow = flow_dict
+                        target_node_id = node.get("id")
+                        target_node_inputs = node_inputs
+                        break
         if target_flow:
             break
 
     if not target_flow:
+        if matched_path_found:
+            raise HTTPException(
+                status_code=405,
+                detail=f"Webhook configured to accept {expected_method}, but received {req_method}",
+            )
         raise HTTPException(status_code=404, detail=f"No active webhook flow found matching path '{webhook_path}'")
+
+    # Authenticate webhook request
+    auth_type = target_node_inputs.get("auth_type", "none")
+    auth_token = target_node_inputs.get("auth_token") or target_node_inputs.get("secret_token") or ""
+
+    if auth_type == "api_key_header":
+        header_name = target_node_inputs.get("auth_header_name") or "X-API-Key"
+        client_key = request.headers.get(header_name) or request.headers.get(header_name.lower())
+        if not client_key or client_key != auth_token:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Unauthorized: Invalid or missing API key in '{header_name}' header",
+            )
+
+    elif auth_type == "bearer":
+        auth_header = request.headers.get("authorization") or request.headers.get("Authorization") or ""
+        expected_bearer = f"Bearer {auth_token}".strip()
+        if not auth_header or not auth_header.startswith("Bearer ") or auth_header.strip() != expected_bearer:
+            raise HTTPException(
+                status_code=401,
+                detail="Unauthorized: Invalid or missing Bearer token in 'Authorization' header",
+            )
+
+    elif auth_type == "api_key_query":
+        query_param_name = target_node_inputs.get("auth_query_param") or "api_key"
+        client_key = request.query_params.get(query_param_name)
+        if not client_key or client_key != auth_token:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Unauthorized: Invalid or missing query parameter '{query_param_name}'",
+            )
 
     # Inject incoming body into webhook trigger node
     for node in target_flow.get("nodes", []):
@@ -230,6 +287,8 @@ async def trigger_webhook(webhook_path: str, request: Request) -> dict[str, Any]
             if "inputs" not in node["data"]:
                 node["data"]["inputs"] = {}
             node["data"]["inputs"]["payload"] = body
+            node["data"]["inputs"]["_headers"] = headers
+            node["data"]["inputs"]["_method"] = req_method
 
     flow_model = FlowModel.model_validate(target_flow)
     runner = FlowRunner(flow_model)

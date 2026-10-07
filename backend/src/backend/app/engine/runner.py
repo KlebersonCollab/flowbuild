@@ -176,12 +176,41 @@ class FlowRunner:
             has_failed_upstream = any(edge.source in self.context.errors for edge in incoming)
             if has_failed_upstream:
                 self.context.errors[node_id] = "Skipped due to upstream dependency error"
+                self.context.set_skipped(node_id)
                 yield {
                     "event": "node_skipped",
                     "node_id": node_id,
                     "reason": "upstream_error",
                 }
                 continue
+
+            # Check conditional branching and skipped upstreams
+            if incoming:
+                all_edges_inactive = True
+                has_conditional_edge = False
+                conditional_edge_inactive = False
+
+                for edge in incoming:
+                    if edge.source in self.context.skipped:
+                        continue
+                    if edge.source_handle in ["true_branch", "false_branch"]:
+                        has_conditional_edge = True
+                        src_res = self.context.results.get(edge.source)
+                        if isinstance(src_res, dict) and src_res.get(edge.source_handle) is None:
+                            conditional_edge_inactive = True
+                            continue
+                    # Edge is active
+                    all_edges_inactive = False
+                    break
+
+                if all_edges_inactive and (has_conditional_edge or any(edge.source in self.context.skipped for edge in incoming)):
+                    self.context.set_skipped(node_id)
+                    yield {
+                        "event": "node_skipped",
+                        "node_id": node_id,
+                        "reason": "condition_not_met" if conditional_edge_inactive else "upstream_skipped",
+                    }
+                    continue
 
             comp_cls = self.registry.get(node.type)
             if not comp_cls:

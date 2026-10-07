@@ -66,4 +66,21 @@ describe('Automation Suite Store & Retry Tests', () => {
       })
     )
   })
+
+  it('executionStore.loadExecution populates nodeStates from history record and activates outputs tab', () => {
+    const store = useExecutionStore()
+    const historyRecord = {
+      id: 'exec-hist-1',
+      node_states: {
+        'wh-1': { status: 'completed', output: { email: 'user@test.com' } },
+        'tf-1': { status: 'completed', output: { received: true } }
+      }
+    }
+
+    store.loadExecution(historyRecord)
+    expect(store.activeDrawerTab).toBe('outputs')
+    expect(store.nodeStates['wh-1'].status).toBe('completed')
+    expect(store.nodeStates['wh-1'].output).toEqual({ email: 'user@test.com' })
+    expect(store.nodeStates['tf-1'].output).toEqual({ received: true })
+  })
 })

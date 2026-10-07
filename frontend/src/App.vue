@@ -5,6 +5,7 @@ import ComponentPalette from './components/ComponentPalette.vue'
 import FlowCanvas from './components/FlowCanvas.vue'
 import NodeInspector from './components/NodeInspector.vue'
 import ExecutionDrawer from './components/ExecutionDrawer.vue'
+import ToastContainer from './components/ToastContainer.vue'
 import { useRegistryStore } from './stores/registryStore'
 import { useFlowStore } from './stores/flowStore'
 import { useExecutionStore } from './stores/executionStore'
@@ -55,5 +56,8 @@ onUnmounted(() => {
       <!-- Right Sidebar: Selected Node Inspector -->
       <NodeInspector />
     </div>
+
+    <!-- Global Toast Notifications -->
+    <ToastContainer />
   </div>
 </template>
