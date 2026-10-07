@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Completed Variable Get/Set Mode Selection & Execution Persistence (ADR 0014).
-- **Progress**: 100% (All unit & integration tests passing: 67 Pytest, 68 Vitest, Vue build clean, SDD integrity 100%).
+- **Current Task**: Completed Variable Environment Scoping & Selection (ADR 0015).
+- **Progress**: 100% (All unit & integration tests passing: 71 Pytest, 71 Vitest, Vue build clean, SDD integrity 100%).
 - **Next Steps**: Awaiting new user requirements or workflow creations.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0015 (Variable Environment Scoping and Target Environment Selection)**: Added `environment` dropdown selector (`"current"`, `"all"`, `"dev"`, `"qa"`, `"prd"`, default `"current"`) to `VariableComponent`. Allows workflows to save or retrieve variables targeting the active execution environment (`current`), universally (`all`), or specifically to a desired deployment stage (`dev`, `qa`, `prd`) in both `mode: "get"` and `mode: "set"`.
 - **2026-10-07 - ADR 0014 (Variable Get/Set Mode Selection & Execution Persistence)**: Enhanced `VariableComponent` with dual operational modes (`mode: "get" | "set"`), variable scoping (`flow` vs `global`), optional DB persistence (`persist: bool`), and dynamic value assignment from upstream nodes or static inputs. Added `upsert_variable` in `DatabaseManager`, real-time runtime propagation into `runner.custom_variables`, and updated `CustomNode.vue` with inline boolean controls. Preserved 100% backwards compatibility for existing flows and single-key assertions.
 - **2026-10-06 - ADR 0013 (Responsive Flows Manager Viewport, Collapsible Sidebar & Grid Layout)**: Expanded modal dimensions to fluid `w-[96vw] max-w-[1550px] h-[92vh]` and introduced Fullscreen / Maximize toggle (`fixed inset-0 w-full h-full`). Added Collapsible Worktree Sidebar (`PanelLeftClose`/`PanelLeftOpen`) to free 100% of horizontal space for flows when needed, View Mode switcher (List vs. 2-column Grid `grid-cols-1 xl:grid-cols-2`), and refined card and webhook layout with break-word/tooltips to eliminate horizontal text and button clipping.
 - **2026-10-06 - ADR 0012 (Worktree Folder Hierarchy & Split Navigation in Flows Manager)**: Replaced flat horizontal folder filter pills with an IDE-inspired two-pane split view layout in `FlowsModal.vue`. Built `folderTree.ts` supporting recursive path segmentation with `/` delimiter (e.g., `Financeiro/Cobrança`), total and direct flow count aggregations, collapsible tree nodes (`ChevronDown`/`ChevronRight`), live folder search filtering, and breadcrumb path headers.

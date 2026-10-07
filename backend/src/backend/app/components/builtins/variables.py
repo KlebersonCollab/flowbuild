@@ -58,6 +58,13 @@ class VariableComponent(BaseComponent):
             default="flow",
             description="Scope of the variable when setting ('flow' or 'global')",
         ),
+        SelectInput(
+            name="environment",
+            label="Environment",
+            options=["current", "all", "dev", "qa", "prd"],
+            default="current",
+            description="Target environment: 'current' (inherits flow environment), 'all' (shared), or specific ('dev', 'qa', 'prd')",
+        ),
         BoolInput(
             name="persist",
             label="Persist in Database",
@@ -100,7 +107,9 @@ class VariableComponent(BaseComponent):
                 db_mgr = None
 
         flow_id = self._raw_inputs.get("_flow_id")
-        environment = self._raw_inputs.get("_environment", "all")
+        env_choice = inp.get("environment", "current")
+        runtime_env = self._raw_inputs.get("_environment", "dev")
+        target_env = runtime_env if env_choice == "current" else env_choice
 
         if mode == "set":
             val_to_set = inp.get("value")
@@ -126,7 +135,7 @@ class VariableComponent(BaseComponent):
                         value=str_val,
                         scope=scope,
                         flow_id=flow_id,
-                        environment=environment,
+                        environment=target_env,
                     )
                 except Exception:
                     pass
@@ -141,21 +150,25 @@ class VariableComponent(BaseComponent):
                 "success": True,
             })
 
-        val = await self.get_value()
+        val = await self.get_value(target_environment=target_env)
         return VariableOutput({
             "value": val,
             "variable_name": var_name,
             "success": True,
         })
 
-    async def get_value(self) -> Any:
+    async def get_value(self, target_environment: str | None = None) -> Any:
         inp = self.get_inputs()
         var_name = inp.get("variable_name", "")
         default_val = inp.get("default_value", "")
 
-        # 1. Check if injected via runner inputs (e.g. _variables)
+        env_choice = inp.get("environment", "current")
+        runtime_env = self._raw_inputs.get("_environment", "dev")
+        resolved_env = target_environment or (runtime_env if env_choice == "current" else env_choice)
+
+        # 1. Check if injected via runner inputs (e.g. _variables) when resolving for current env
         variables = self._raw_inputs.get("_variables")
-        if isinstance(variables, dict) and var_name in variables:
+        if env_choice == "current" and isinstance(variables, dict) and var_name in variables:
             self._resolved_value = variables[var_name]
             return self._resolved_value
 
@@ -172,13 +185,16 @@ class VariableComponent(BaseComponent):
         if var_name and db_mgr and hasattr(db_mgr, "resolve_variable_value"):
             try:
                 flow_id = self._raw_inputs.get("_flow_id")
-                environment = self._raw_inputs.get("_environment", "dev")
-                val = db_mgr.resolve_variable_value(var_name, flow_id=flow_id, environment=environment)
+                val = db_mgr.resolve_variable_value(var_name, flow_id=flow_id, environment=resolved_env)
                 if val is not None:
                     self._resolved_value = val
                     return self._resolved_value
             except Exception:
                 pass
+
+        if isinstance(variables, dict) and var_name in variables:
+            self._resolved_value = variables[var_name]
+            return self._resolved_value
 
         self._resolved_value = default_val
         return self._resolved_value
