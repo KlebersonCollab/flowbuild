@@ -15,7 +15,7 @@
 | [x] | TASK-03 | feat | Update VariableComponent with mode (get/set), scope, persist, and dynamic execution behavior | `backend/src/backend/app/components/builtins/variables.py` | TASK-02 | pytest 67 passed |
 | [x] | TASK-04 | feat | Update FlowRunner to propagate variables set at runtime to self.custom_variables and downstream nodes | `backend/src/backend/app/engine/runner.py` | TASK-03 | pytest test_flow_runner_propagates_set_variable_downstream passed |
 | [x] | TASK-05 | test | Add frontend unit tests for VariableComponent get/set schema and execution verification | `frontend/tests/variables_get_set.test.ts`, `frontend/src/components/CustomNode.vue` | TASK-04 | vitest 68 passed |
-| [x] | TASK-06 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-05 | All sensors passed (pytest: 67 passed, vitest: 68 passed, vue-tsc & vite build: exit 0, sdd integrity: 100%) |
+| [x] | TASK-06 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-05 | Commit `dda9372` - All sensors passed (pytest: 67 passed, vitest: 68 passed, vue-tsc & vite build: exit 0, sdd integrity: 100%) |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).
