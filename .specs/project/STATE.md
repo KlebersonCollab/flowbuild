@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Completed Variable Environment Scoping & Selection (ADR 0015).
-- **Progress**: 100% (All unit & integration tests passing: 71 Pytest, 71 Vitest, Vue build clean, SDD integrity 100%).
-- **Next Steps**: Awaiting new user requirements or workflow creations.
+- **Current Task**: Completed GitHub Showcase README & Visual Documentation (ADR 0016).
+- **Progress**: 100% (4 live 1080p screenshots generated, README.md published, MIT LICENSE added, 71 Pytest & 71 Vitest passing, SDD integrity 100%).
+- **Next Steps**: Ready for Git commit, push, and publication to GitHub.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0016 (Canonical Showcase README & Visual Documentation Engine)**: Created production-grade GitHub showcase README.md with Linear-dark aesthetics, Mermaid architecture diagram, component matrix, quickstart guide, and 4 real 1080p screenshots captured via automated headless Chrome engine (`capture-screenshots.mjs`). Included open-source MIT License.
 - **2026-10-07 - ADR 0015 (Variable Environment Scoping and Target Environment Selection)**: Added `environment` dropdown selector (`"current"`, `"all"`, `"dev"`, `"qa"`, `"prd"`, default `"current"`) to `VariableComponent`. Allows workflows to save or retrieve variables targeting the active execution environment (`current`), universally (`all`), or specifically to a desired deployment stage (`dev`, `qa`, `prd`) in both `mode: "get"` and `mode: "set"`.
 - **2026-10-07 - ADR 0014 (Variable Get/Set Mode Selection & Execution Persistence)**: Enhanced `VariableComponent` with dual operational modes (`mode: "get" | "set"`), variable scoping (`flow` vs `global`), optional DB persistence (`persist: bool`), and dynamic value assignment from upstream nodes or static inputs. Added `upsert_variable` in `DatabaseManager`, real-time runtime propagation into `runner.custom_variables`, and updated `CustomNode.vue` with inline boolean controls. Preserved 100% backwards compatibility for existing flows and single-key assertions.
 - **2026-10-06 - ADR 0013 (Responsive Flows Manager Viewport, Collapsible Sidebar & Grid Layout)**: Expanded modal dimensions to fluid `w-[96vw] max-w-[1550px] h-[92vh]` and introduced Fullscreen / Maximize toggle (`fixed inset-0 w-full h-full`). Added Collapsible Worktree Sidebar (`PanelLeftClose`/`PanelLeftOpen`) to free 100% of horizontal space for flows when needed, View Mode switcher (List vs. 2-column Grid `grid-cols-1 xl:grid-cols-2`), and refined card and webhook layout with break-word/tooltips to eliminate horizontal text and button clipping.
