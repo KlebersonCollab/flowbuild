@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Completed Responsive Flows Manager Viewport, Maximize Mode, Collapsible Sidebar & Grid Layout (ADR 0013).
-- **Progress**: 100% (All unit & integration tests passing: 62 Pytest, 63 Vitest, Vue build clean, SDD integrity 100%).
+- **Current Task**: Completed Variable Get/Set Mode Selection & Execution Persistence (ADR 0014).
+- **Progress**: 100% (All unit & integration tests passing: 67 Pytest, 68 Vitest, Vue build clean, SDD integrity 100%).
 - **Next Steps**: Awaiting new user requirements or workflow creations.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0014 (Variable Get/Set Mode Selection & Execution Persistence)**: Enhanced `VariableComponent` with dual operational modes (`mode: "get" | "set"`), variable scoping (`flow` vs `global`), optional DB persistence (`persist: bool`), and dynamic value assignment from upstream nodes or static inputs. Added `upsert_variable` in `DatabaseManager`, real-time runtime propagation into `runner.custom_variables`, and updated `CustomNode.vue` with inline boolean controls. Preserved 100% backwards compatibility for existing flows and single-key assertions.
 - **2026-10-06 - ADR 0013 (Responsive Flows Manager Viewport, Collapsible Sidebar & Grid Layout)**: Expanded modal dimensions to fluid `w-[96vw] max-w-[1550px] h-[92vh]` and introduced Fullscreen / Maximize toggle (`fixed inset-0 w-full h-full`). Added Collapsible Worktree Sidebar (`PanelLeftClose`/`PanelLeftOpen`) to free 100% of horizontal space for flows when needed, View Mode switcher (List vs. 2-column Grid `grid-cols-1 xl:grid-cols-2`), and refined card and webhook layout with break-word/tooltips to eliminate horizontal text and button clipping.
 - **2026-10-06 - ADR 0012 (Worktree Folder Hierarchy & Split Navigation in Flows Manager)**: Replaced flat horizontal folder filter pills with an IDE-inspired two-pane split view layout in `FlowsModal.vue`. Built `folderTree.ts` supporting recursive path segmentation with `/` delimiter (e.g., `Financeiro/Cobrança`), total and direct flow count aggregations, collapsible tree nodes (`ChevronDown`/`ChevronRight`), live folder search filtering, and breadcrumb path headers.
 - **2026-10-06 - ADR 0011 (Secure Webhook Authentication Modes & UX Clarity)**: Implemented configurable authentication for Webhook triggers (`none`, `api_key_header`, `bearer`, `api_key_query`) with customizable header names (`X-API-Key`, `Stripe-Signature`, etc.) and query parameter names. FastAPI route enforcers return standard HTTP 401 Unauthorized with descriptive details when keys/tokens are invalid. Backwards compatibility preserved for legacy `secret_token`. Enhanced frontend with security badges and a one-click "Copiar cURL" command generator in `FlowsModal.vue`.

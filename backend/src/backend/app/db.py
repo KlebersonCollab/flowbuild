@@ -691,6 +691,67 @@ class DatabaseManager:
             res = conn.execute(delete(self.variables_table).where(self.variables_table.c.id == var_id))
             return res.rowcount > 0
 
+    def upsert_variable(
+        self,
+        key: str,
+        value: str,
+        scope: str = "flow",
+        flow_id: str | None = None,
+        environment: str = "all",
+        is_secret: bool = False,
+    ) -> VariableRecord:
+        now = datetime.now(timezone.utc).isoformat()
+        target_flow_id = flow_id if scope == "flow" else None
+        target_env = environment or "all"
+
+        stmt = select(self.variables_table).where(
+            self.variables_table.c.key == key,
+            self.variables_table.c.scope == scope,
+        )
+        if scope == "flow":
+            if target_flow_id is not None:
+                stmt = stmt.where(self.variables_table.c.flow_id == target_flow_id)
+            else:
+                stmt = stmt.where(self.variables_table.c.flow_id.is_(None))
+        else:
+            stmt = stmt.where(self.variables_table.c.flow_id.is_(None))
+
+        if target_env in ("all", None, ""):
+            stmt = stmt.where(
+                (self.variables_table.c.environment == "all")
+                | (self.variables_table.c.environment.is_(None))
+                | (self.variables_table.c.environment == "")
+            )
+        else:
+            stmt = stmt.where(self.variables_table.c.environment == target_env)
+
+        with self.engine.begin() as conn:
+            existing = conn.execute(stmt).mappings().fetchone()
+            if existing:
+                var_id = existing["id"]
+                conn.execute(
+                    update(self.variables_table)
+                    .where(self.variables_table.c.id == var_id)
+                    .values(value=value, updated_at=now, is_secret=is_secret)
+                )
+            else:
+                var_id = f"var-{uuid.uuid4().hex[:8]}"
+                conn.execute(
+                    insert(self.variables_table).values(
+                        id=var_id,
+                        key=key,
+                        value=value,
+                        scope=scope,
+                        flow_id=target_flow_id,
+                        environment=target_env,
+                        is_secret=is_secret,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+
+        return self.get_variable(var_id)  # type: ignore[return-value]
+
 
 # Global singleton instance for the app
 db_manager = DatabaseManager()

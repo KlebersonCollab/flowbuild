@@ -298,6 +298,18 @@ function onDeleteNode(e: Event) {
                 {{ opt }}
               </option>
             </select>
+            <label
+              v-else-if="input.type === 'bool'"
+              class="flex items-center space-x-2 text-[11px] text-[#d0d6e0] cursor-pointer pt-0.5 nodrag"
+            >
+              <input
+                type="checkbox"
+                :checked="Boolean(data.inputs[input.name] ?? input.default ?? false)"
+                @change="onInputChange(input.name, ($event.target as HTMLInputElement).checked)"
+                class="rounded bg-[#141516] border-[#23252a] text-[#5e6ad2] focus:ring-[#5e6ad2] h-3.5 w-3.5 cursor-pointer"
+              />
+              <span class="text-[10px] text-[#8a8f98]">Ativar</span>
+            </label>
           </div>
         </div>
       </div>

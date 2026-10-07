@@ -126,6 +126,16 @@ class FlowRunner:
         # Inject context variables and flow id for component-level access
         node_inputs["_variables"] = var_map
         node_inputs["_flow_id"] = self.flow.id
+        node_inputs["_environment"] = self.environment
+        if self.db_manager:
+            node_inputs["_db_manager"] = self.db_manager
+        else:
+            try:
+                from backend.app.db import db_manager as default_db
+
+                node_inputs["_db_manager"] = default_db
+            except Exception:
+                pass
 
         return node_inputs
 
@@ -226,6 +236,11 @@ class FlowRunner:
                 component = comp_cls(inputs=resolved_inputs)
                 output = await component.execute()
                 self.context.set_result(node_id, output)
+                if isinstance(output, dict) and output.get("success") and "variable_name" in output:
+                    var_name = output.get("variable_name")
+                    if var_name:
+                        self.custom_variables[var_name] = output.get("value")
+
                 yield {
                     "event": "node_completed",
                     "node_id": node_id,
