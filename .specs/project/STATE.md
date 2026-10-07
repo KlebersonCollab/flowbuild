@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Completed Worktree Folder Hierarchy & Split Navigation in Flows Manager (ADR 0012).
-- **Progress**: 100% (All unit & integration tests passing: 62 Pytest, 60 Vitest, Vue build clean, SDD integrity 100%).
+- **Current Task**: Completed Responsive Flows Manager Viewport, Maximize Mode, Collapsible Sidebar & Grid Layout (ADR 0013).
+- **Progress**: 100% (All unit & integration tests passing: 62 Pytest, 63 Vitest, Vue build clean, SDD integrity 100%).
 - **Next Steps**: Awaiting new user requirements or workflow creations.
 
 ## 💡 Decisions Log
+- **2026-10-06 - ADR 0013 (Responsive Flows Manager Viewport, Collapsible Sidebar & Grid Layout)**: Expanded modal dimensions to fluid `w-[96vw] max-w-[1550px] h-[92vh]` and introduced Fullscreen / Maximize toggle (`fixed inset-0 w-full h-full`). Added Collapsible Worktree Sidebar (`PanelLeftClose`/`PanelLeftOpen`) to free 100% of horizontal space for flows when needed, View Mode switcher (List vs. 2-column Grid `grid-cols-1 xl:grid-cols-2`), and refined card and webhook layout with break-word/tooltips to eliminate horizontal text and button clipping.
 - **2026-10-06 - ADR 0012 (Worktree Folder Hierarchy & Split Navigation in Flows Manager)**: Replaced flat horizontal folder filter pills with an IDE-inspired two-pane split view layout in `FlowsModal.vue`. Built `folderTree.ts` supporting recursive path segmentation with `/` delimiter (e.g., `Financeiro/Cobrança`), total and direct flow count aggregations, collapsible tree nodes (`ChevronDown`/`ChevronRight`), live folder search filtering, and breadcrumb path headers.
 - **2026-10-06 - ADR 0011 (Secure Webhook Authentication Modes & UX Clarity)**: Implemented configurable authentication for Webhook triggers (`none`, `api_key_header`, `bearer`, `api_key_query`) with customizable header names (`X-API-Key`, `Stripe-Signature`, etc.) and query parameter names. FastAPI route enforcers return standard HTTP 401 Unauthorized with descriptive details when keys/tokens are invalid. Backwards compatibility preserved for legacy `secret_token`. Enhanced frontend with security badges and a one-click "Copiar cURL" command generator in `FlowsModal.vue`.
 - **2026-10-06 - ADR 0010 (Paginated HTTP Client with Loop & Break Condition)**: Implemented `PaginatedHttpComponent` allowing workflows to ingest data from paginated REST APIs (`page_number`, `offset_limit`, `cursor`) without violating DAG acyclicity. Supports customizable Python `break_condition`, safe `max_pages` ceiling, extraction via `items_path` and `cursor_path`, returning consolidated arrays (`all_items`, `total_items`, `pages_fetched`). Added pre-configured template `paginated_api_flow` in `flowStore.ts` and `TopNav.vue`.

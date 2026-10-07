@@ -22,6 +22,12 @@ import {
   FileText,
   Pencil,
   Terminal,
+  Maximize2,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  List,
+  LayoutGrid,
 } from 'lucide-vue-next'
 import { useFlowStore } from '../stores/flowStore'
 import { getWebhookInfo, getWebhookAuthBadge, getWebhookCurlCommand } from '../utils/webhook'
@@ -45,6 +51,9 @@ const flowStore = useFlowStore()
 const copiedWebhookId = ref<string | null>(null)
 const copiedCurlId = ref<string | null>(null)
 const isSaving = ref(false)
+const isMaximized = ref<boolean>(false)
+const isSidebarOpen = ref<boolean>(true)
+const viewMode = ref<'list' | 'grid'>((localStorage.getItem('flowbuild_flows_view_mode') as 'list' | 'grid') || 'list')
 const selectedFolder = ref<string>('all')
 const expandedFolders = ref<Set<string>>(new Set())
 const folderSearchQuery = ref('')
@@ -58,6 +67,13 @@ const notificationMessage = ref<{
   text: string
   targetEnv?: 'qa' | 'prd'
 } | null>(null)
+
+function setViewMode(mode: 'list' | 'grid') {
+  viewMode.value = mode
+  try {
+    localStorage.setItem('flowbuild_flows_view_mode', mode)
+  } catch (e) {}
+}
 
 const devCount = computed(() =>
   flowStore.savedFlows.filter((f: any) => (f.environment || 'dev') === 'dev').length
@@ -259,7 +275,12 @@ function onCreateNewFlow() {
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm select-none"
     @click.self="emit('close')"
   >
-    <div class="w-full max-w-5xl rounded-xl bg-[#0f1011] border border-[#23252a] text-[#f7f8f8] shadow-2xl flex flex-col h-[88vh] overflow-hidden">
+    <div
+      class="bg-[#0f1011] border border-[#23252a] text-[#f7f8f8] shadow-2xl flex flex-col overflow-hidden transition-all duration-150"
+      :class="isMaximized
+        ? 'fixed inset-0 w-full h-full rounded-none z-50'
+        : 'w-[96vw] max-w-[1550px] h-[92vh] rounded-xl'"
+    >
       <!-- Modal Header -->
       <div class="flex items-center justify-between border-b border-[#23252a] px-5 py-3 bg-[#141516]">
         <div class="flex items-center space-x-2.5">
@@ -295,12 +316,24 @@ function onCreateNewFlow() {
           </button>
         </div>
 
-        <button
-          @click="emit('close')"
-          class="h-7 w-7 rounded flex items-center justify-center text-[#8a8f98] hover:text-white hover:bg-[#23252a] transition-colors"
-        >
-          <X class="h-4 w-4" />
-        </button>
+        <div class="flex items-center space-x-1.5">
+          <button
+            @click="isMaximized = !isMaximized"
+            class="h-7 w-7 rounded flex items-center justify-center text-[#8a8f98] hover:text-white hover:bg-[#23252a] transition-colors"
+            :title="isMaximized ? 'Restaurar tamanho da janela' : 'Maximizar tela cheia'"
+          >
+            <Minimize2 v-if="isMaximized" class="h-3.5 w-3.5" />
+            <Maximize2 v-else class="h-3.5 w-3.5" />
+          </button>
+
+          <button
+            @click="emit('close')"
+            class="h-7 w-7 rounded flex items-center justify-center text-[#8a8f98] hover:text-white hover:bg-[#23252a] transition-colors"
+            title="Fechar modal"
+          >
+            <X class="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <!-- Promotion & Save Notification Banner -->
@@ -383,7 +416,7 @@ function onCreateNewFlow() {
       <!-- Main Split Body (Worktree Sidebar + Flows Content) -->
       <div class="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
         <!-- Left Pane: Worktree Sidebar -->
-        <aside class="w-full md:w-64 border-b md:border-b-0 md:border-r border-[#23252a] bg-[#0b0c0e] flex flex-col shrink-0">
+        <aside v-if="isSidebarOpen" class="w-full md:w-64 lg:w-72 border-b md:border-b-0 md:border-r border-[#23252a] bg-[#0b0c0e] flex flex-col shrink-0">
           <!-- Worktree Header & Search -->
           <div class="p-2.5 border-b border-[#23252a] space-y-2">
             <div class="flex items-center justify-between">
@@ -519,32 +552,70 @@ function onCreateNewFlow() {
 
         <!-- Right Pane: Flows List & Details -->
         <main class="flex-1 flex flex-col min-h-0 bg-[#0f1011]">
-          <!-- Breadcrumb Bar -->
-          <div class="px-4 py-2 border-b border-[#23252a] bg-[#0d0e0f] flex items-center justify-between text-xs">
-            <div class="flex items-center space-x-1.5 text-[#8a8f98] truncate">
-              <span class="text-[11px] uppercase font-semibold text-[#62666d]">Pasta:</span>
-              <span v-if="selectedFolder === 'all'" class="font-medium text-white">Todos os Fluxos</span>
-              <template v-else>
-                <span
-                  v-for="(seg, idx) in selectedFolder.split('/')"
-                  :key="idx"
-                  class="flex items-center space-x-1.5"
-                >
-                  <span v-if="idx > 0" class="text-[#3e3e44]">/</span>
-                  <span :class="idx === selectedFolder.split('/').length - 1 ? 'font-medium text-[#828fff]' : 'text-[#8a8f98]'">
-                    {{ seg }}
+          <!-- Breadcrumb & Controls Bar -->
+          <div class="px-4 py-2 border-b border-[#23252a] bg-[#0d0e0f] flex items-center justify-between text-xs gap-3">
+            <div class="flex items-center space-x-2 text-[#8a8f98] min-w-0">
+              <!-- Sidebar Toggle Button -->
+              <button
+                @click="isSidebarOpen = !isSidebarOpen"
+                class="p-1 rounded text-[#8a8f98] hover:text-white hover:bg-[#1f2024] transition-colors shrink-0 border border-[#2e3035]"
+                :title="isSidebarOpen ? 'Ocultar painel de pastas' : 'Mostrar painel de pastas'"
+              >
+                <PanelLeftClose v-if="isSidebarOpen" class="h-3.5 w-3.5 text-[#5e6ad2]" />
+                <PanelLeftOpen v-else class="h-3.5 w-3.5 text-[#828fff]" />
+              </button>
+
+              <div class="flex items-center space-x-1.5 truncate">
+                <span class="text-[11px] uppercase font-semibold text-[#62666d]">Pasta:</span>
+                <span v-if="selectedFolder === 'all'" class="font-medium text-white">Todos os Fluxos</span>
+                <template v-else>
+                  <span
+                    v-for="(seg, idx) in selectedFolder.split('/')"
+                    :key="idx"
+                    class="flex items-center space-x-1.5"
+                  >
+                    <span v-if="idx > 0" class="text-[#3e3e44]">/</span>
+                    <span :class="idx === selectedFolder.split('/').length - 1 ? 'font-medium text-[#828fff]' : 'text-[#8a8f98]'">
+                      {{ seg }}
+                    </span>
                   </span>
-                </span>
-              </template>
+                </template>
+              </div>
             </div>
 
-            <span class="text-[11px] text-[#62666d] font-mono shrink-0">
-              {{ filteredFlows.length }} {{ filteredFlows.length === 1 ? 'fluxo' : 'fluxos' }}
-            </span>
+            <!-- Right Controls: Count + List/Grid View Mode Switcher -->
+            <div class="flex items-center space-x-3 shrink-0">
+              <span class="text-[11px] text-[#62666d] font-mono">
+                {{ filteredFlows.length }} {{ filteredFlows.length === 1 ? 'fluxo' : 'fluxos' }}
+              </span>
+
+              <!-- View Mode Toggle -->
+              <div class="flex items-center space-x-0.5 bg-[#141516] p-0.5 rounded border border-[#23252a]">
+                <button
+                  @click="setViewMode('list')"
+                  class="p-1 rounded transition-colors"
+                  :class="viewMode === 'list' ? 'bg-[#5e6ad2]/25 text-[#828fff]' : 'text-[#8a8f98] hover:text-white'"
+                  title="Exibir em lista ampla"
+                >
+                  <List class="h-3.5 w-3.5" />
+                </button>
+                <button
+                  @click="setViewMode('grid')"
+                  class="p-1 rounded transition-colors"
+                  :class="viewMode === 'grid' ? 'bg-[#5e6ad2]/25 text-[#828fff]' : 'text-[#8a8f98] hover:text-white'"
+                  title="Exibir em grade de 2 colunas"
+                >
+                  <LayoutGrid class="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Flows List -->
-          <div class="flex-1 overflow-y-auto p-4 space-y-3">
+          <div
+            class="flows-container flex-1 overflow-y-auto p-4"
+            :class="viewMode === 'grid' ? 'grid grid-cols-1 xl:grid-cols-2 gap-3.5 auto-rows-max' : 'space-y-3'"
+          >
         <div
           v-if="filteredFlows.length === 0"
           class="py-12 text-center text-xs text-[#62666d] space-y-2"
@@ -722,7 +793,7 @@ function onCreateNewFlow() {
                 <span>{{ getWebhookInfo(flow.flow_data)?.authType === 'none' ? '🔓' : '🔒' }}</span>
                 <span>{{ getWebhookAuthBadge(getWebhookInfo(flow.flow_data)!).label }}</span>
               </span>
-              <span class="text-white truncate">/api/v1/webhooks/{{ getWebhookInfo(flow.flow_data)?.path }}</span>
+              <span class="text-white break-all sm:break-normal truncate sm:overflow-visible font-mono" :title="'/api/v1/webhooks/' + getWebhookInfo(flow.flow_data)?.path">/api/v1/webhooks/{{ getWebhookInfo(flow.flow_data)?.path }}</span>
             </div>
             <div class="flex items-center space-x-1.5 shrink-0 self-end sm:self-auto">
               <button
