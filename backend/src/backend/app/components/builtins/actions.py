@@ -214,7 +214,7 @@ class JsonTransformComponent(BaseComponent):
 class PaginatedHttpComponent(BaseComponent):
     name: ClassVar[str] = "PaginatedHttpComponent"
     display_name: ClassVar[str] = "Paginated HTTP Client"
-    category: ClassVar[str] = "HTTP"
+    category: ClassVar[str] = "Actions"
     description: ClassVar[str] = (
         "Iteratively fetches paginated API pages with customizable break condition "
         "and aggregates all items."
