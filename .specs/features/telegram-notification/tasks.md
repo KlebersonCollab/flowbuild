@@ -10,11 +10,11 @@
 
 | Status | ID | Type | Description | Target Files | Dependencies | Evidence |
 |---|---|---|---|---|---|---|
-| [ ] | TASK-01 | test | Add backend integration tests for TelegramWebhookComponent (successful delivery, message_id extraction, silent mode, API error response, network error, and FlowRunner variable interpolation) | `backend/tests/test_telegram_notification.py` | None | Pending execution |
-| [ ] | TASK-02 | feat | Implement TelegramWebhookComponent with Bot API POST formatting, parameter options, and register in builtins | `backend/src/backend/app/components/builtins/actions.py`, `backend/src/backend/app/components/builtins/__init__.py` | TASK-01 | Pending execution |
-| [ ] | TASK-03 | test | Add frontend unit tests verifying TelegramWebhookComponent schema, ports, and palette display | `frontend/tests/telegram_notification.test.ts` | TASK-02 | Pending execution |
-| [ ] | TASK-04 | feat | Update CustomNode and ComponentPalette with Send icon and Sky styling for Telegram | `frontend/src/components/CustomNode.vue`, `frontend/src/components/ComponentPalette.vue` | TASK-03 | Pending execution |
-| [ ] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Pending execution |
+| [x] | TASK-01 | test | Add backend integration tests for TelegramWebhookComponent (successful delivery, message_id extraction, silent mode, API error response, network error, and FlowRunner variable interpolation) | `backend/tests/test_telegram_notification.py` | None | pytest 7 passed in tests/test_telegram_notification.py |
+| [x] | TASK-02 | feat | Implement TelegramWebhookComponent with Bot API POST formatting, parameter options, and register in builtins | `backend/src/backend/app/components/builtins/actions.py`, `backend/src/backend/app/components/builtins/__init__.py` | TASK-01 | pytest 108 passed in backend/ (7/7 Telegram tests passing, 0 regressions) |
+| [x] | TASK-03 | test | Add frontend unit tests verifying TelegramWebhookComponent schema, ports, and palette display | `frontend/tests/telegram_notification.test.ts` | TASK-02 | vitest 4 passed in tests/telegram_notification.test.ts |
+| [x] | TASK-04 | feat | Update CustomNode and ComponentPalette with Send icon and Sky styling for Telegram | `frontend/src/components/CustomNode.vue`, `frontend/src/components/ComponentPalette.vue` | TASK-03 | vitest 101 passed, vue build passed, Send icon & Sky styling applied |
+| [x] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Commit f703b05, pytest 108 passed, vitest 101 passed, vue build passed, verify-sdd-integrity passed |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).

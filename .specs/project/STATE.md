@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Discord Notification & Webhook Messaging Component (ADR 0022).
-- **Progress**: Discord Webhook Node fully implemented, tested (101 Pytest tests, 97 Vitest tests), integrated with MessageCircle icon and Blurple styling.
-- **Next Steps**: Await user direction for next capabilities or flows.
+- **Current Task**: Email Notification Component (ADR 0024) - Mensageria & Notificações.
+- **Progress**: Telegram Webhook Node (ADR 0023) fully implemented and verified (108 Pytest tests, 101 Vitest tests), committed at f703b05 with Send icon and Sky styling.
+- **Next Steps**: Implement EmailNotificationComponent (ADR 0024) with SMTP delivery and template formatting.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0023 (Telegram Notification & Webhook Messaging Component)**: Introduced native `TelegramWebhookComponent` in the Actions category supporting direct messaging via Telegram Bot API (`sendMessage`), HTML/MarkdownV2 formatting, silent alerts, disabled preview flags, `message_id` return, `Send` icon, and Sky blue styling.
 - **2026-10-07 - ADR 0022 (Discord Notification & Webhook Messaging Component)**: Introduced native `DiscordWebhookComponent` in the Actions category supporting formatted messages, rich Embed cards, hex-to-decimal color parsing, bot appearance (`username`, `avatar_url`), HTTP 200/204 delivery semantics, `MessageCircle` icon, and Blurple styling.
 - **2026-10-07 - ADR 0021 (Showcase Workflow Templates for Advanced Logic, Data Filtering and Messaging Nodes)**: Expanded template library with 4 production-grade showcase workflows (`switch_router_flow`, `data_filter_alert_flow`, `delay_polling_flow`, `etl_pagination_filter_flow`), categorized TopNav dropdown into 3 semantic sections (Básicos, Lógica & Controle, Dados & Alertas) with Linear dark styling, and verified node topology.
 - **2026-10-07 - ADR 0020 (Slack Notification & Webhook Messaging Component)**: Introduced native `SlackWebhookComponent` in the Actions category supporting formatted messages, channel overrides, custom bot identity (`username`, `icon_emoji`), Block Kit / attachments, async httpx execution, network error resilience, `MessageSquare` icon, and Rose styling.
