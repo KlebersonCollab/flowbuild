@@ -219,7 +219,16 @@ export const useFlowStore = defineStore('flow', () => {
   }
 
   function loadTemplate(
-    templateType: 'http_enrich' | 'webhook_flow' | 'python_pipeline' | 'if_condition_flow' | 'paginated_api_flow'
+    templateType:
+      | 'http_enrich'
+      | 'webhook_flow'
+      | 'python_pipeline'
+      | 'if_condition_flow'
+      | 'paginated_api_flow'
+      | 'switch_router_flow'
+      | 'data_filter_alert_flow'
+      | 'delay_polling_flow'
+      | 'etl_pagination_filter_flow'
   ): void {
     if (templateType === 'http_enrich') {
       flowId.value = 'flow-http-enrich'
@@ -403,7 +412,7 @@ export const useFlowStore = defineStore('flow', () => {
         { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'params' },
         { id: 'e2', source: n2Id, sourceHandle: 'all_items', target: n3Id, targetHandle: 'input_data' },
       ]
-    } else {
+    } else if (templateType === 'webhook_flow') {
       flowId.value = 'flow-webhook-transform'
       flowName.value = 'Recepção Webhook & Filtro'
       flowDescription.value = 'Endpoint de webhook HTTP para recepção e filtragem contínua de leads em tempo real.'
@@ -435,6 +444,326 @@ export const useFlowStore = defineStore('flow', () => {
       edges.value = [
         { id: 'e1', source: n1Id, sourceHandle: 'payload', target: n2Id, targetHandle: 'input_data' }
       ]
+    } else if (templateType === 'switch_router_flow') {
+      flowId.value = 'flow-switch-router'
+      flowName.value = 'Roteamento Inteligente & Multi-Branch'
+      flowDescription.value = 'Triagem multi-ramais baseada em regras de negócio com Switch Node e escalação automática de chamados críticos via Slack.'
+      const n1Id = 'trig-1'
+      const n2Id = 'switch-1'
+      const n3Id = 'slack-urgent'
+      const n4Id = 'tf-high'
+      const n5Id = 'tf-med'
+      const n6Id = 'tf-default'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'ManualTriggerComponent',
+          position: { x: 60, y: 220 },
+          data: {
+            inputs: {
+              initial_payload: {
+                ticket_id: 'TCK-9402',
+                customer: 'Acme Corp',
+                priority: 'critical',
+                subject: 'Instabilidade no cluster de produção'
+              }
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'SwitchNodeComponent',
+          position: { x: 420, y: 200 },
+          data: {
+            inputs: {
+              expression: "data.get('priority')",
+              case_1_expr: "'critical'",
+              case_2_expr: "'high'",
+              case_3_expr: "'medium'"
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'SlackWebhookComponent',
+          position: { x: 800, y: 40 },
+          data: {
+            inputs: {
+              webhook_url: 'https://hooks.slack.com/services/T00/B00/X00',
+              text: '🚨 ALERTA CRÍTICO: Chamado {{ticket_id}} de {{customer}} - {{subject}}',
+              channel: '#incidents',
+              username: 'IncidentBot',
+              icon_emoji: ':fire:'
+            }
+          }
+        },
+        {
+          id: n4Id,
+          type: 'JsonTransformComponent',
+          position: { x: 800, y: 190 },
+          data: {
+            inputs: {
+              expression: "dict(queue='prioritaria', ticket=payload.get('ticket_id'), sla_horas=2)"
+            }
+          }
+        },
+        {
+          id: n5Id,
+          type: 'JsonTransformComponent',
+          position: { x: 800, y: 340 },
+          data: {
+            inputs: {
+              expression: "dict(queue='padrao', ticket=payload.get('ticket_id'), sla_horas=8)"
+            }
+          }
+        },
+        {
+          id: n6Id,
+          type: 'JsonTransformComponent',
+          position: { x: 800, y: 480 },
+          data: {
+            inputs: {
+              expression: "dict(queue='backlog_geral', ticket=payload.get('ticket_id'), status='triagem')"
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'input_data' },
+        { id: 'e2', source: n2Id, sourceHandle: 'case_1', target: n3Id, targetHandle: 'text' },
+        { id: 'e3', source: n2Id, sourceHandle: 'case_2', target: n4Id, targetHandle: 'input_data' },
+        { id: 'e4', source: n2Id, sourceHandle: 'case_3', target: n5Id, targetHandle: 'input_data' },
+        { id: 'e5', source: n2Id, sourceHandle: 'default_branch', target: n6Id, targetHandle: 'input_data' }
+      ]
+    } else if (templateType === 'data_filter_alert_flow') {
+      flowId.value = 'flow-data-filter-alert'
+      flowName.value = 'Filtro de Dados & Alerta Slack'
+      flowDescription.value = 'Extração e filtragem declarativa de lista de pedidos, separando pedidos VIP de compras padrão e notificando a equipe.'
+      const n1Id = 'trig-1'
+      const n2Id = 'filter-1'
+      const n3Id = 'tf-vip'
+      const n4Id = 'slack-vip'
+      const n5Id = 'tf-standard'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'ManualTriggerComponent',
+          position: { x: 60, y: 200 },
+          data: {
+            inputs: {
+              initial_payload: {
+                batch_id: 'batch-2026-10',
+                orders: [
+                  { id: 101, customer: 'Empresa Alpha', total: 4500, tier: 'gold' },
+                  { id: 102, customer: 'Beta Ltd', total: 320, tier: 'standard' },
+                  { id: 103, customer: 'Mega Corp', total: 12800, tier: 'platinum' },
+                  { id: 104, customer: 'Micro Dev', total: 150, tier: 'standard' }
+                ]
+              }
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'DataFilterComponent',
+          position: { x: 420, y: 180 },
+          data: {
+            inputs: {
+              items_path: 'orders',
+              field: 'total',
+              operator: 'greater_than',
+              value: '1000'
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'JsonTransformComponent',
+          position: { x: 780, y: 100 },
+          data: {
+            inputs: {
+              expression: "dict(total_vips=len(payload), clientes=[p.get('customer') for p in payload], valor_total=sum(p.get('total', 0) for p in payload))"
+            }
+          }
+        },
+        {
+          id: n4Id,
+          type: 'SlackWebhookComponent',
+          position: { x: 1140, y: 100 },
+          data: {
+            inputs: {
+              webhook_url: 'https://hooks.slack.com/services/T00/B00/X00',
+              text: '🎉 Relatório VIP: Identificados novos pedidos de alto valor no lote!',
+              username: 'SalesBot',
+              icon_emoji: ':moneybag:'
+            }
+          }
+        },
+        {
+          id: n5Id,
+          type: 'JsonTransformComponent',
+          position: { x: 780, y: 300 },
+          data: {
+            inputs: {
+              expression: "dict(total_pedidos_comuns=len(payload), status='fila_padrao_expedicao')"
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'input_data' },
+        { id: 'e2', source: n2Id, sourceHandle: 'filtered_items', target: n3Id, targetHandle: 'input_data' },
+        { id: 'e3', source: n3Id, sourceHandle: 'data', target: n4Id, targetHandle: 'text' },
+        { id: 'e4', source: n2Id, sourceHandle: 'discarded_items', target: n5Id, targetHandle: 'input_data' }
+      ]
+    } else if (templateType === 'delay_polling_flow') {
+      flowId.value = 'flow-delay-polling'
+      flowName.value = 'Automação com Delay & Polling Assíncrono'
+      flowDescription.value = 'Dispara um processamento assíncrono, aguarda uma pausa não-bloqueante (Delay node) e notifica o término da rotina.'
+      const n1Id = 'trig-1'
+      const n2Id = 'http-start'
+      const n3Id = 'delay-1'
+      const n4Id = 'slack-finish'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'ManualTriggerComponent',
+          position: { x: 80, y: 200 },
+          data: {
+            inputs: {
+              initial_payload: { job_id: 'export-data-902', environment: 'prd' }
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'HttpRequestComponent',
+          position: { x: 400, y: 200 },
+          data: {
+            inputs: {
+              url: 'https://httpbin.org/post',
+              method: 'POST',
+              body: { action: 'start_heavy_task' },
+              timeout: 15
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'DelayComponent',
+          position: { x: 740, y: 200 },
+          data: {
+            inputs: {
+              delay: 3,
+              unit: 'seconds'
+            }
+          }
+        },
+        {
+          id: n4Id,
+          type: 'SlackWebhookComponent',
+          position: { x: 1060, y: 200 },
+          data: {
+            inputs: {
+              webhook_url: 'https://hooks.slack.com/services/T00/B00/X00',
+              text: '⏱️ Tarefa {{job_id}} finalizada com sucesso após intervalo de delay!',
+              username: 'WorkflowNotifier',
+              icon_emoji: ':white_check_mark:'
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'body' },
+        { id: 'e2', source: n2Id, sourceHandle: 'data', target: n3Id, targetHandle: 'input_data' },
+        { id: 'e3', source: n3Id, sourceHandle: 'data', target: n4Id, targetHandle: 'text' }
+      ]
+    } else if (templateType === 'etl_pagination_filter_flow') {
+      flowId.value = 'flow-etl-pagination-filter'
+      flowName.value = 'ETL Completo: Paginação → Filtro → Slack'
+      flowDescription.value = 'Pipeline analítico empresarial completo: consome API paginada, filtra itens por regras declarativas, consolida métricas e posta no Slack.'
+      const n1Id = 'trig-1'
+      const n2Id = 'page-http'
+      const n3Id = 'filter-stars'
+      const n4Id = 'tf-digest'
+      const n5Id = 'slack-report'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'ManualTriggerComponent',
+          position: { x: 60, y: 200 },
+          data: {
+            inputs: {
+              initial_payload: { organization: 'vuejs', min_stars: 100 }
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'PaginatedHttpComponent',
+          position: { x: 380, y: 200 },
+          data: {
+            inputs: {
+              url: 'https://api.github.com/orgs/vuejs/repos',
+              method: 'GET',
+              pagination_mode: 'page_number',
+              page_param: 'page',
+              limit_param: 'per_page',
+              page_size: 10,
+              start_page: 1,
+              items_path: '',
+              break_condition: 'total_items >= 20',
+              max_pages: 3,
+              headers: { 'User-Agent': 'FlowBuild/1.0' }
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'DataFilterComponent',
+          position: { x: 740, y: 200 },
+          data: {
+            inputs: {
+              field: 'stargazers_count',
+              operator: 'greater_than',
+              value: '500'
+            }
+          }
+        },
+        {
+          id: n4Id,
+          type: 'JsonTransformComponent',
+          position: { x: 1080, y: 120 },
+          data: {
+            inputs: {
+              expression: "dict(total_destaque=len(payload), top_repos=[r.get('name') for r in payload if isinstance(r, dict)])"
+            }
+          }
+        },
+        {
+          id: n5Id,
+          type: 'SlackWebhookComponent',
+          position: { x: 1420, y: 120 },
+          data: {
+            inputs: {
+              webhook_url: 'https://hooks.slack.com/services/T00/B00/X00',
+              text: '📊 Relatório ETL: Ingestão paginada e filtragem concluídas com sucesso!',
+              username: 'ETLBot',
+              icon_emoji: ':bar_chart:'
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'params' },
+        { id: 'e2', source: n2Id, sourceHandle: 'all_items', target: n3Id, targetHandle: 'input_data' },
+        { id: 'e3', source: n3Id, sourceHandle: 'filtered_items', target: n4Id, targetHandle: 'input_data' },
+        { id: 'e4', source: n4Id, sourceHandle: 'data', target: n5Id, targetHandle: 'text' }
+      ]
+    } else {
+      // Fallback: Default http_enrich
+      loadTemplate('http_enrich')
+      return
     }
     selectedNodeId.value = null
   }

@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Completed sequence (SwitchNodeComponent ADR 0018, DataFilterComponent ADR 0019, SlackWebhookComponent ADR 0020).
-- **Progress**: All 3 requested components fully planned, implemented, tested with TDD, and integrated into canvas palette & custom nodes with 100% sensor pass rate.
+- **Current Task**: Showcase Workflow Templates for Advanced Logic, Data Filtering and Messaging Nodes (ADR 0021).
+- **Progress**: All 4 new showcase templates implemented, tested (93 Vitest tests, 94 Pytest tests), categorized in TopNav, and verified.
 - **Next Steps**: Await user direction for next capabilities or flows.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0021 (Showcase Workflow Templates for Advanced Logic, Data Filtering and Messaging Nodes)**: Expanded template library with 4 production-grade showcase workflows (`switch_router_flow`, `data_filter_alert_flow`, `delay_polling_flow`, `etl_pagination_filter_flow`), categorized TopNav dropdown into 3 semantic sections (Básicos, Lógica & Controle, Dados & Alertas) with Linear dark styling, and verified node topology.
 - **2026-10-07 - ADR 0020 (Slack Notification & Webhook Messaging Component)**: Introduced native `SlackWebhookComponent` in the Actions category supporting formatted messages, channel overrides, custom bot identity (`username`, `icon_emoji`), Block Kit / attachments, async httpx execution, network error resilience, `MessageSquare` icon, and Rose styling.
 - **2026-10-07 - ADR 0019 (Declarative Data Filter Component for Collections and Records)**: Introduced native `DataFilterComponent` in the Transform category supporting declarative comparison operators (`equals`, `contains`, `greater_than`, etc.), collection extraction via `items_path`, custom expressions, dual output branches (`filtered_items` and `discarded_items`), and count telemetry.
 - **2026-10-07 - ADR 0018 (Multi-Branch Switch Routing Component and Generalized Branch Skipping)**: Introduced native `SwitchNodeComponent` in the Logic category with multi-way routing (`case_1`, `case_2`, `case_3`, `default_branch`), generalized branch skipping in `FlowRunner`, `GitFork` icon, and Indigo Linear dark styling.

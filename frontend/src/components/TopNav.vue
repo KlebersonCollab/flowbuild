@@ -95,7 +95,16 @@ function onFileSelected(event: Event) {
 }
 
 function onSelectTemplate(
-  type: 'http_enrich' | 'webhook_flow' | 'python_pipeline' | 'if_condition_flow' | 'paginated_api_flow'
+  type:
+    | 'http_enrich'
+    | 'webhook_flow'
+    | 'python_pipeline'
+    | 'if_condition_flow'
+    | 'paginated_api_flow'
+    | 'switch_router_flow'
+    | 'data_filter_alert_flow'
+    | 'delay_polling_flow'
+    | 'etl_pagination_filter_flow'
 ) {
   flowStore.loadTemplate(type)
   showTemplatesDropdown.value = false
@@ -223,10 +232,11 @@ function onClearCanvas() {
         <div
           v-if="showTemplatesDropdown"
           @click.outside="showTemplatesDropdown = false"
-          class="absolute left-0 mt-1 w-64 rounded-lg bg-[#0f1011] border border-[#23252a] shadow-2xl py-1 z-50 text-xs"
+          class="absolute left-0 mt-1 w-80 max-h-[82vh] overflow-y-auto rounded-lg bg-[#0f1011] border border-[#23252a] shadow-2xl py-1 z-50 text-xs custom-scrollbar"
         >
-          <div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#62666d] border-b border-[#23252a]">
-            Fluxos Pré-Configurados
+          <!-- Section 1: Básicos & APIs -->
+          <div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#62666d] border-b border-[#23252a] bg-[#141516]/50">
+            Fluxos Básicos & APIs
           </div>
           <button
             @click="onSelectTemplate('http_enrich')"
@@ -249,6 +259,11 @@ function onClearCanvas() {
             <span class="font-medium text-cyan-400">Recepção Webhook Lead</span>
             <span class="text-[10px] text-[#8a8f98]">Webhook Trigger → Normalização de Payload</span>
           </button>
+
+          <!-- Section 2: Lógica & Controle de Fluxo -->
+          <div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#62666d] border-t border-b border-[#23252a] bg-[#141516]/50 mt-1">
+            Lógica & Controle de Fluxo
+          </div>
           <button
             @click="onSelectTemplate('if_condition_flow')"
             class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
@@ -257,11 +272,44 @@ function onClearCanvas() {
             <span class="text-[10px] text-[#8a8f98]">Disparo Manual → IF Condition → True/False Branch</span>
           </button>
           <button
+            @click="onSelectTemplate('switch_router_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-indigo-400">Roteamento Inteligente & Multi-Branch</span>
+            <span class="text-[10px] text-[#8a8f98]">Switch Node (4 ramais) → Alerta Slack & Filas</span>
+          </button>
+          <button
+            @click="onSelectTemplate('delay_polling_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-amber-300">Automação com Delay & Polling</span>
+            <span class="text-[10px] text-[#8a8f98]">Disparo Manual → HTTP POST → Delay 3s → Alerta Slack</span>
+          </button>
+
+          <!-- Section 3: Dados & Alertas -->
+          <div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#62666d] border-t border-b border-[#23252a] bg-[#141516]/50 mt-1">
+            Dados & Alertas
+          </div>
+          <button
+            @click="onSelectTemplate('data_filter_alert_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-emerald-400">Filtragem de Dados & Alerta Slack</span>
+            <span class="text-[10px] text-[#8a8f98]">Data Filter (Pedidos VIP > 1000) → Slack Bot</span>
+          </button>
+          <button
             @click="onSelectTemplate('paginated_api_flow')"
             class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
           >
-            <span class="font-medium text-emerald-400">API Paginada com Loop & Break</span>
+            <span class="font-medium text-emerald-300">API Paginada com Loop & Break</span>
             <span class="text-[10px] text-[#8a8f98]">Disparo Manual → Paginated HTTP → Consolidar JSON</span>
+          </button>
+          <button
+            @click="onSelectTemplate('etl_pagination_filter_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-rose-400">ETL Completo: Paginação → Filtro → Slack</span>
+            <span class="text-[10px] text-[#8a8f98]">Paginated REST → Data Filter → Transform → Relatório Slack</span>
           </button>
         </div>
       </div>

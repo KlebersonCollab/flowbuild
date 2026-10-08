@@ -22,6 +22,7 @@
 - **Switch / Router Node (`SwitchNodeComponent`)**: A multi-branch control flow logic component that routes incoming data to one of several output paths (`case_1`, `case_2`, `case_3`, or `default_branch`) based on expression matching, with cascading branch skipping on unselected handles.
 - **Data Filter Node (`DataFilterComponent`)**: A transform component that filters arrays of items or dictionary payloads declaratively based on field comparison operators (`equals`, `contains`, `greater_than`, etc.) or Python expressions, emitting `filtered_items`, `discarded_items`, and count telemetry.
 - **Slack Notification Node (`SlackWebhookComponent`)**: An action component that sends formatted messages and alerts to Slack channels via Incoming Webhooks, supporting custom bot identity, Block Kit blocks, attachments, variable interpolation, and error resilience.
+- **Showcase Templates Catalog**: A categorized library of 9 pre-configured workflow templates in `flowStore.ts` and `TopNav.vue` illustrating real-world patterns across APIs, Logic & Control Flow (Switch, Delay), and Data & Alerts (Filter, Paginated HTTP, Slack Webhooks).
 
 ---
 
