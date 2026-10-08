@@ -1,4 +1,5 @@
 from backend.app.components.builtins.actions import (
+    CsvParserComponent,
     DataAggregatorComponent,
     DataFilterComponent,
     DataMapperComponent,
@@ -39,6 +40,7 @@ def register_all_builtins() -> None:
     registry.register(DataFilterComponent)
     registry.register(DataMapperComponent)
     registry.register(DataAggregatorComponent)
+    registry.register(CsvParserComponent)
     registry.register(SlackWebhookComponent)
     registry.register(DiscordWebhookComponent)
     registry.register(TelegramWebhookComponent)
@@ -51,6 +53,7 @@ def register_all_builtins() -> None:
 
 __all__ = [
     "CronTriggerComponent",
+    "CsvParserComponent",
     "DataAggregatorComponent",
     "DataFilterComponent",
     "DataMapperComponent",

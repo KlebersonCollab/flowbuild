@@ -1,6 +1,8 @@
 import asyncio
+import csv
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import io
 import smtplib
 from typing import Any, ClassVar
 
@@ -1748,6 +1750,181 @@ class DataAggregatorComponent(BaseComponent):
 
     async def get_count(self) -> int:
         return self._count
+
+
+class CsvParserComponent(BaseComponent):
+    name: ClassVar[str] = "CsvParserComponent"
+    display_name: ClassVar[str] = "CSV Parser"
+    category: ClassVar[str] = "Transform"
+    description: ClassVar[str] = (
+        "Parses CSV text into JSON collections, or converts JSON collections into formatted CSV strings."
+    )
+    icon: ClassVar[str] = "file-spreadsheet"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        SelectInput(
+            name="mode",
+            label="Operation Mode",
+            options=["parse", "generate"],
+            default="parse",
+        ),
+        StrInput(
+            name="csv_data",
+            label="CSV Data",
+            placeholder="CSV text content",
+            default="",
+        ),
+        DictInput(
+            name="json_data",
+            label="JSON Data",
+            placeholder="Array of objects to convert to CSV",
+            default=[],
+        ),
+        StrInput(
+            name="delimiter",
+            label="Delimiter",
+            default=",",
+        ),
+        BoolInput(
+            name="has_headers",
+            label="Has Header Row",
+            default=True,
+        ),
+        BoolInput(
+            name="skip_empty_lines",
+            label="Skip Empty Lines",
+            default=True,
+        ),
+        StrInput(
+            name="custom_headers",
+            label="Custom Headers (Generate Mode)",
+            placeholder="Comma-separated header names",
+            default="",
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="data", label="Output Data", type="any", method="get_data"),
+        Output(name="row_count", label="Row Count", type="int", method="get_row_count"),
+        Output(name="headers", label="Headers", type="list", method="get_headers"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._data: Any = []
+        self._row_count: int = 0
+        self._headers: list[str] = []
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.process_csv()
+
+    async def process_csv(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        mode = str(inp.get("mode") or "parse").lower().strip()
+        delimiter = str(inp.get("delimiter") or ",")
+        if not delimiter:
+            delimiter = ","
+        has_headers = bool(inp.get("has_headers", True))
+        skip_empty_lines = bool(inp.get("skip_empty_lines", True))
+        custom_headers_raw = str(inp.get("custom_headers") or "").strip()
+
+        if mode == "generate":
+            json_data = inp.get("json_data")
+            if not isinstance(json_data, list):
+                if isinstance(json_data, dict):
+                    json_data = [json_data]
+                else:
+                    json_data = []
+
+            if not json_data:
+                self._data = ""
+                self._row_count = 0
+                self._headers = []
+                return self._build_result()
+
+            fieldnames: list[str] = []
+            if custom_headers_raw:
+                fieldnames = [h.strip() for h in custom_headers_raw.split(",") if h.strip()]
+            else:
+                seen = set()
+                for row in json_data:
+                    if isinstance(row, dict):
+                        for k in row.keys():
+                            if k not in seen:
+                                seen.add(k)
+                                fieldnames.append(k)
+
+            output_io = io.StringIO()
+            writer = csv.DictWriter(output_io, fieldnames=fieldnames, delimiter=delimiter, extrasaction="ignore", lineterminator="\r\n")
+            writer.writeheader()
+            for row in json_data:
+                if isinstance(row, dict):
+                    writer.writerow(row)
+
+            self._data = output_io.getvalue()
+            self._row_count = len(json_data)
+            self._headers = fieldnames
+            return self._build_result()
+
+        # Parse mode
+        raw_csv = inp.get("csv_data")
+        if isinstance(raw_csv, dict):
+            for candidate in ["csv_text", "csv", "data", "text", "content"]:
+                if candidate in raw_csv and isinstance(raw_csv[candidate], str):
+                    raw_csv = raw_csv[candidate]
+                    break
+            else:
+                raw_csv = ""
+
+        csv_text = str(raw_csv or "").strip()
+        if not csv_text:
+            self._data = []
+            self._row_count = 0
+            self._headers = []
+            return self._build_result()
+
+        input_io = io.StringIO(csv_text)
+        if has_headers:
+            reader = csv.DictReader(input_io, delimiter=delimiter)
+            rows: list[dict[str, Any]] = []
+            for r in reader:
+                if skip_empty_lines and not any(r.values()):
+                    continue
+                rows.append(dict(r))
+            self._data = rows
+            self._row_count = len(rows)
+            self._headers = list(reader.fieldnames or [])
+        else:
+            reader_list = csv.reader(input_io, delimiter=delimiter)
+            rows_list: list[list[str]] = []
+            for r in reader_list:
+                if skip_empty_lines and not any(r):
+                    continue
+                rows_list.append(r)
+            self._data = rows_list
+            self._row_count = len(rows_list)
+            self._headers = [f"col_{i}" for i in range(len(rows_list[0]))] if rows_list else []
+
+        return self._build_result()
+
+    def _build_result(self) -> dict[str, Any]:
+        return {
+            "data": self._data,
+            "row_count": self._row_count,
+            "headers": self._headers,
+        }
+
+    async def get_data(self) -> Any:
+        return self._data
+
+    async def get_row_count(self) -> int:
+        return self._row_count
+
+    async def get_headers(self) -> list[str]:
+        return self._headers
+
 
 
 
