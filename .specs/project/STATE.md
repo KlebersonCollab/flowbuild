@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Flow Control & Reliability Components (ADR 0030: LoopIteratorComponent) - Controle de Fluxo & Confiabilidade.
-- **Progress**: Cluster 3 (Banco de Dados & Armazenamento) 100% COMPLETE: DatabaseQueryComponent (ADR 0028) and KeyValueStoreComponent (ADR 0029 - committed at c8ee581) fully implemented and verified (145 Pytest tests, 125 Vitest tests passing).
-- **Next Steps**: Implement LoopIteratorComponent (ADR 0030) for batched or item-by-item sequential iteration over collections without violating DAG invariants.
+- **Current Task**: Flow Control & Reliability Components (ADR 0031: TryCatchComponent) - Controle de Fluxo & Confiabilidade.
+- **Progress**: LoopIteratorComponent (ADR 0030) fully implemented and verified (152 Pytest tests, 129 Vitest tests), committed at 1f8b600 with Repeat icon and Indigo styling.
+- **Next Steps**: Implement TryCatchComponent (ADR 0031) for error boundaries, exception capture, fallback branch routing, and resilience.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0030 (Loop Iterator Component for Collection Chunking and Batch Processing)**: Introduced native `LoopIteratorComponent` in the Logic category supporting collection batching (`batch_size`), pagination (`batch_index`), path traversal (`items_path`), iteration telemetry (`has_more`, `batch_info`), `Repeat` icon, and Indigo styling.
 - **2026-10-07 - ADR 0029 (Key-Value Store Component for Cross-Execution State and Counters)**: Introduced native `KeyValueStoreComponent` in the Storage category backed by a dedicated `kv_store` table in `DatabaseManager`, supporting `get`, `set`, `delete`, `increment`, and `list` operations, namespace isolation, type preservation (JSON, numbers, booleans, strings), `HardDrive` icon, and Teal styling.
 - **2026-10-07 - ADR 0028 (Database Query Component for SQL Execution and Storage)**: Introduced native `DatabaseQueryComponent` in the Storage category supporting parameterized SQL queries via SQLAlchemy (`text(query)`), safe dictionary binding (`:param`), configurable fetch modes (`"all"`, `"one"`, `"none"`), connection fallback to `db_manager.engine` or custom database URLs, non-blocking execution via `asyncio.to_thread`, `Database` icon, and Teal styling.
 - **2026-10-07 - ADR 0027 (CSV Parser Component for Delimited Data Serialization and Parsing)**: Introduced native `CsvParserComponent` in the Transform category supporting bidirectional CSV parsing (CSV string to list of dicts) and generation (JSON list to CSV string), configurable delimiters, header handling, empty line skipping, custom column ordering, `FileSpreadsheet` icon, and Emerald styling.
