@@ -1415,6 +1415,143 @@ class EmailNotificationComponent(BaseComponent):
         return self._recipients_count
 
 
+def _resolve_nested_path(data: Any, path: str) -> Any:
+    if not path or data is None:
+        return None
+    curr = data
+    for part in path.split("."):
+        if isinstance(curr, dict):
+            curr = curr.get(part)
+        elif isinstance(curr, (list, tuple)) and part.isdigit():
+            idx = int(part)
+            if 0 <= idx < len(curr):
+                curr = curr[idx]
+            else:
+                return None
+        else:
+            return None
+        if curr is None:
+            return None
+    return curr
+
+
+class DataMapperComponent(BaseComponent):
+    name: ClassVar[str] = "DataMapperComponent"
+    display_name: ClassVar[str] = "Data Mapper"
+    category: ClassVar[str] = "Transform"
+    description: ClassVar[str] = (
+        "Transforms, renames, and restructures objects or collections using declarative field mappings."
+    )
+    icon: ClassVar[str] = "arrow-right-left"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        DictInput(
+            name="input_data",
+            label="Input Data",
+            placeholder="Object or list of objects to map",
+            default={},
+        ),
+        DictInput(
+            name="mapping",
+            label="Field Mapping Schema",
+            placeholder='{"target_key": "source.path.key"}',
+            default={},
+        ),
+        StrInput(
+            name="items_path",
+            label="Items Array Path",
+            placeholder="Optional path to items list (e.g. 'results' or 'data.users')",
+            default="",
+        ),
+        BoolInput(
+            name="pass_unmapped",
+            label="Pass Unmapped Fields",
+            default=False,
+        ),
+        SelectInput(
+            name="mode",
+            label="Processing Mode",
+            options=["auto", "single", "array"],
+            default="auto",
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="output_data", label="Mapped Output", type="any", method="get_output_data"),
+        Output(name="mapped_count", label="Mapped Count", type="int", method="get_mapped_count"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._output_data: Any = {}
+        self._mapped_count: int = 0
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.map_data()
+
+    async def map_data(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        raw_data = inp.get("input_data")
+        mapping = inp.get("mapping") or {}
+        items_path = str(inp.get("items_path") or "").strip()
+        pass_unmapped = bool(inp.get("pass_unmapped", False))
+        mode = str(inp.get("mode") or "auto").strip()
+
+        if not isinstance(mapping, dict):
+            mapping = {}
+
+        source_data = raw_data
+        if items_path:
+            source_data = _resolve_nested_path(raw_data, items_path)
+
+        def _map_single_record(record: Any) -> dict[str, Any]:
+            if not isinstance(record, dict):
+                return {}
+            out: dict[str, Any] = {}
+            if pass_unmapped:
+                out.update(record)
+            for dest_key, src_path in mapping.items():
+                if isinstance(src_path, str):
+                    out[dest_key] = _resolve_nested_path(record, src_path)
+                else:
+                    out[dest_key] = src_path
+            return out
+
+        is_collection = False
+        if mode == "array":
+            is_collection = True
+        elif mode == "single":
+            is_collection = False
+        else:  # auto
+            is_collection = isinstance(source_data, list)
+
+        if is_collection and isinstance(source_data, list):
+            mapped_list = [_map_single_record(item) for item in source_data]
+            self._output_data = mapped_list
+            self._mapped_count = len(mapped_list)
+        elif isinstance(source_data, dict):
+            mapped_dict = _map_single_record(source_data)
+            self._output_data = mapped_dict
+            self._mapped_count = 1 if source_data else 0
+        else:
+            self._output_data = {} if not is_collection else []
+            self._mapped_count = 0
+
+        return {
+            "output_data": self._output_data,
+            "mapped_count": self._mapped_count,
+        }
+
+    async def get_output_data(self) -> Any:
+        return self._output_data
+
+    async def get_mapped_count(self) -> int:
+        return self._mapped_count
+
+
+
 
 
 
