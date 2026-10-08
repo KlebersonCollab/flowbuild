@@ -92,6 +92,59 @@ describe('Showcase Templates Suite (ADR 0021)', () => {
     expect(flowStore.nodes.some((n) => n.type === 'SlackWebhookComponent')).toBe(true)
   })
 
+  it('loads database_csv_export_flow template with DatabaseQuery, CsvParser, and EmailNotification', () => {
+    const flowStore = useFlowStore()
+    // @ts-expect-error templateType extension
+    flowStore.loadTemplate('database_csv_export_flow')
+
+    expect(flowStore.flowName).toContain('CSV')
+    expect(flowStore.nodes.some((n) => n.type === 'CronTriggerComponent')).toBe(true)
+    expect(flowStore.nodes.some((n) => n.type === 'DatabaseQueryComponent')).toBe(true)
+    expect(flowStore.nodes.some((n) => n.type === 'CsvParserComponent')).toBe(true)
+    expect(flowStore.nodes.some((n) => n.type === 'EmailNotificationComponent')).toBe(true)
+
+    const csvNode = flowStore.nodes.find((n) => n.type === 'CsvParserComponent')
+    expect(csvNode?.data.inputs.mode).toBe('generate')
+    expect(flowStore.hasTriggerNode()).toBe(true)
+  })
+
+  it('loads batch_kv_discord_flow template with LoopIterator, KeyValueStore, and DiscordWebhook', () => {
+    const flowStore = useFlowStore()
+    // @ts-expect-error templateType extension
+    flowStore.loadTemplate('batch_kv_discord_flow')
+
+    expect(flowStore.flowName).toContain('Lote')
+    expect(flowStore.nodes.some((n) => n.type === 'ManualTriggerComponent')).toBe(true)
+    expect(flowStore.nodes.some((n) => n.type === 'LoopIteratorComponent')).toBe(true)
+    expect(flowStore.nodes.some((n) => n.type === 'KeyValueStoreComponent')).toBe(true)
+    expect(flowStore.nodes.some((n) => n.type === 'DiscordWebhookComponent')).toBe(true)
+
+    const kvNode = flowStore.nodes.find((n) => n.type === 'KeyValueStoreComponent')
+    expect(kvNode?.data.inputs.operation).toBe('increment')
+    expect(kvNode?.data.inputs.namespace).toBe('billing')
+    expect(flowStore.hasTriggerNode()).toBe(true)
+  })
+
+  it('loads resilient_try_catch_telegram_flow template with DataMapper, TryCatch, and TelegramWebhook', () => {
+    const flowStore = useFlowStore()
+    // @ts-expect-error templateType extension
+    flowStore.loadTemplate('resilient_try_catch_telegram_flow')
+
+    expect(flowStore.flowName).toContain('Resiliente')
+    expect(flowStore.nodes.some((n) => n.type === 'WebhookTriggerComponent')).toBe(true)
+    expect(flowStore.nodes.some((n) => n.type === 'DataMapperComponent')).toBe(true)
+    expect(flowStore.nodes.some((n) => n.type === 'TryCatchComponent')).toBe(true)
+    expect(flowStore.nodes.some((n) => n.type === 'TelegramWebhookComponent')).toBe(true)
+
+    const tryCatchNode = flowStore.nodes.find((n) => n.type === 'TryCatchComponent')
+    expect(tryCatchNode).toBeDefined()
+    const edgesFromTry = flowStore.edges.filter((e) => e.source === tryCatchNode?.id)
+    const handleNames = edgesFromTry.map((e) => e.sourceHandle)
+    expect(handleNames).toContain('success_branch')
+    expect(handleNames).toContain('error_branch')
+    expect(flowStore.hasTriggerNode()).toBe(true)
+  })
+
   it('renders TopNav with categorized template choices', async () => {
     const wrapper = mount(TopNav)
     // Open dropdown
@@ -102,9 +155,13 @@ describe('Showcase Templates Suite (ADR 0021)', () => {
     expect(wrapper.text()).toContain('Fluxos Básicos')
     expect(wrapper.text()).toContain('Lógica & Controle')
     expect(wrapper.text()).toContain('Dados & Alertas')
+    expect(wrapper.text()).toContain('Banco de Dados, Lotes & Mensageria')
     expect(wrapper.text()).toContain('Roteamento Inteligente & Multi-Branch')
     expect(wrapper.text()).toContain('Filtragem de Dados & Alerta Slack')
     expect(wrapper.text()).toContain('Automação com Delay & Polling')
     expect(wrapper.text()).toContain('ETL Completo: Paginação → Filtro → Slack')
+    expect(wrapper.text()).toContain('Exportação SQL para CSV & Email')
+    expect(wrapper.text()).toContain('Processamento em Lote com KV & Discord')
+    expect(wrapper.text()).toContain('Pipeline Resiliente: Try/Catch & Telegram')
   })
 })

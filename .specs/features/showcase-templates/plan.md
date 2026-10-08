@@ -1,31 +1,14 @@
-# Plan: Showcase Workflow Templates (ADR 0021)
+# Feature Plan: Showcase Workflow Templates Expansion (ADR 0032)
 
-## 1. Problem Statement & Motivation
-Users need intuitive, real-world examples demonstrating the potential of FlowBuild's latest components (`DelayComponent`, `SwitchNodeComponent`, `DataFilterComponent`, `SlackWebhookComponent`, `PaginatedHttpComponent`). Without pre-built showcase templates, users must manually discover and connect these advanced nodes from scratch.
+## Executive Summary
+Expand the workflow template library to provide first-class canvas demonstrations of the newly built clusters: Database SQL Query, CSV Parser, Key-Value Store, Loop Iterator, Try/Catch, Telegram, and Email components. Reorganize the TopNav dropdown menu into 4 thematic sections for intuitive navigation.
 
-Providing pre-built, ready-to-run templates directly from the top navigation dropdown allows users to test, inspect, and understand complex orchestration patterns in seconds.
-
-## 2. Scope & Boundaries
-- **In Scope**:
-  - Implement 4 new templates in `frontend/src/stores/flowStore.ts`:
-    - `switch_router_flow`: Multi-branch routing with `SwitchNodeComponent` and `SlackWebhookComponent`.
-    - `data_filter_alert_flow`: Collection filtering with `DataFilterComponent` and dual output branch handling.
-    - `delay_polling_flow`: Timed async pauses with `DelayComponent`.
-    - `etl_pagination_filter_flow`: End-to-end pipeline uniting pagination, filtering, JSON transformation, and Slack alerts.
-  - Review and refine existing 5 templates to ensure clear labels and descriptions.
-  - Group templates into clear semantic sections inside the `TopNav.vue` dropdown.
-  - Frontend unit tests verifying all 9 templates load correct node types, edges, and valid inputs.
-- **Out of Scope**:
-  - Backend schema migrations (templates are client-side canvas initializers serialized into standard flows).
-
-## 3. High-Level Approach
-- Expand `loadTemplate` in `flowStore.ts` with explicit node coordinates, descriptive default payloads, and correctly configured port connections (`sourceHandle` / `targetHandle`).
-- Upgrade `TopNav.vue` dropdown layout to display grouped categories (*Básicos*, *Lógica & Controle*, *Dados & Alertas*) with colored badge accents matching `DESIGN.md`.
-- Validate via Vitest that every template loads all expected nodes, handles, and properties.
-
-## 4. Dependencies & Prerequisites
-- `flowStore.ts` and `TopNav.vue`.
-- Built-in components registered in backend and frontend.
-
-## 5. Architectural Decision Records (ADRs)
-- Relates to [ADR 0021: Showcase Workflow Templates for Advanced Logic, Data Filtering and Messaging Nodes](../../project/ADRs/0021-showcase-templates.md).
+## Scope & Target Deliverables
+1. **Templates in `flowStore.ts`**:
+   - `database_csv_export_flow`: CronTrigger -> DatabaseQuery -> CsvParser -> EmailNotification.
+   - `batch_kv_discord_flow`: ManualTrigger -> LoopIterator -> KeyValueStore -> DiscordWebhook.
+   - `resilient_try_catch_telegram_flow`: WebhookTrigger -> DataMapper -> TryCatch -> (JsonTransform / TelegramWebhook).
+2. **TopNav Dropdown UI in `TopNav.vue`**:
+   - Reorganize templates into 4 clear sections with Linear dark aesthetic badges, icons, and titles.
+3. **Frontend Automated Tests in `frontend/tests/showcase_templates.test.ts`**:
+   - Verify all 12 templates load correctly, have valid nodes and edges, valid trigger nodes, and correct node types.

@@ -105,6 +105,9 @@ function onSelectTemplate(
     | 'data_filter_alert_flow'
     | 'delay_polling_flow'
     | 'etl_pagination_filter_flow'
+    | 'database_csv_export_flow'
+    | 'batch_kv_discord_flow'
+    | 'resilient_try_catch_telegram_flow'
 ) {
   flowStore.loadTemplate(type)
   showTemplatesDropdown.value = false
@@ -285,6 +288,13 @@ function onClearCanvas() {
             <span class="font-medium text-amber-300">Automação com Delay & Polling</span>
             <span class="text-[10px] text-[#8a8f98]">Disparo Manual → HTTP POST → Delay 3s → Alerta Slack</span>
           </button>
+          <button
+            @click="onSelectTemplate('resilient_try_catch_telegram_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-rose-400">Pipeline Resiliente: Try/Catch & Telegram</span>
+            <span class="text-[10px] text-[#8a8f98]">Webhook → Data Mapper → Try/Catch Fallback → Telegram Bot</span>
+          </button>
 
           <!-- Section 3: Dados & Alertas -->
           <div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#62666d] border-t border-b border-[#23252a] bg-[#141516]/50 mt-1">
@@ -310,6 +320,25 @@ function onClearCanvas() {
           >
             <span class="font-medium text-rose-400">ETL Completo: Paginação → Filtro → Slack</span>
             <span class="text-[10px] text-[#8a8f98]">Paginated REST → Data Filter → Transform → Relatório Slack</span>
+          </button>
+
+          <!-- Section 4: Banco de Dados, Lotes & Mensageria -->
+          <div class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[#62666d] border-t border-b border-[#23252a] bg-[#141516]/50 mt-1">
+            Banco de Dados, Lotes & Mensageria
+          </div>
+          <button
+            @click="onSelectTemplate('database_csv_export_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-teal-400">Exportação SQL para CSV & Email</span>
+            <span class="text-[10px] text-[#8a8f98]">Cron Semanal → Query SQL → Gerador CSV → Envio Email</span>
+          </button>
+          <button
+            @click="onSelectTemplate('batch_kv_discord_flow')"
+            class="w-full text-left px-3 py-2 hover:bg-[#141516] text-[#f7f8f8] transition-colors flex flex-col"
+          >
+            <span class="font-medium text-indigo-400">Processamento em Lote com KV & Discord</span>
+            <span class="text-[10px] text-[#8a8f98]">Disparo Manual → Loop Iterator → KV Store Counter → Discord Embed</span>
           </button>
         </div>
       </div>

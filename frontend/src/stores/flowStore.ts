@@ -229,6 +229,9 @@ export const useFlowStore = defineStore('flow', () => {
       | 'data_filter_alert_flow'
       | 'delay_polling_flow'
       | 'etl_pagination_filter_flow'
+      | 'database_csv_export_flow'
+      | 'batch_kv_discord_flow'
+      | 'resilient_try_catch_telegram_flow'
   ): void {
     if (templateType === 'http_enrich') {
       flowId.value = 'flow-http-enrich'
@@ -759,6 +762,221 @@ export const useFlowStore = defineStore('flow', () => {
         { id: 'e2', source: n2Id, sourceHandle: 'all_items', target: n3Id, targetHandle: 'input_data' },
         { id: 'e3', source: n3Id, sourceHandle: 'filtered_items', target: n4Id, targetHandle: 'input_data' },
         { id: 'e4', source: n4Id, sourceHandle: 'data', target: n5Id, targetHandle: 'text' }
+      ]
+    } else if (templateType === 'database_csv_export_flow') {
+      flowId.value = 'flow-db-csv-export'
+      flowName.value = 'Exportação SQL para CSV & Email'
+      flowDescription.value = 'Executa query SQL analítica periódica, converte os registros em formato tabular CSV (RFC 4180) e envia relatório transacional por e-mail.'
+      const n1Id = 'cron-1'
+      const n2Id = 'db-query-1'
+      const n3Id = 'csv-parser-1'
+      const n4Id = 'email-notify-1'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'CronTriggerComponent',
+          position: { x: 60, y: 200 },
+          data: {
+            inputs: {
+              cron_expression: '0 8 * * 1'
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'DatabaseQueryComponent',
+          position: { x: 380, y: 200 },
+          data: {
+            inputs: {
+              query: "SELECT id, customer, amount, status FROM orders WHERE status = 'completed' ORDER BY amount DESC LIMIT 50;",
+              fetch_mode: 'all',
+              params: {}
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'CsvParserComponent',
+          position: { x: 740, y: 200 },
+          data: {
+            inputs: {
+              mode: 'generate',
+              delimiter: ',',
+              has_headers: true
+            }
+          }
+        },
+        {
+          id: n4Id,
+          type: 'EmailNotificationComponent',
+          position: { x: 1080, y: 200 },
+          data: {
+            inputs: {
+              smtp_host: 'smtp.mailgun.org',
+              smtp_port: 587,
+              use_tls: true,
+              sender_email: 'relatorios@flowbuild.io',
+              recipient_email: 'financeiro@empresa.com',
+              subject: 'Relatório Semanal de Pedidos (CSV Export)',
+              is_html: false
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'trigger_info', target: n2Id, targetHandle: 'params' },
+        { id: 'e2', source: n2Id, sourceHandle: 'rows', target: n3Id, targetHandle: 'records' },
+        { id: 'e3', source: n3Id, sourceHandle: 'csv_text', target: n4Id, targetHandle: 'body' }
+      ]
+    } else if (templateType === 'batch_kv_discord_flow') {
+      flowId.value = 'flow-batch-kv-discord'
+      flowName.value = 'Processamento em Lote com KV & Discord'
+      flowDescription.value = 'Fatia uma coleção de transações em lotes via Loop Iterator, incrementa atomicamente o contador persistente no Key-Value Store e emite card Embed no Discord.'
+      const n1Id = 'trig-1'
+      const n2Id = 'loop-1'
+      const n3Id = 'kv-1'
+      const n4Id = 'discord-1'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'ManualTriggerComponent',
+          position: { x: 60, y: 200 },
+          data: {
+            inputs: {
+              initial_payload: {
+                transactions: [
+                  { id: 'tx_101', amount: 250, status: 'approved' },
+                  { id: 'tx_102', amount: 180, status: 'approved' },
+                  { id: 'tx_103', amount: 420, status: 'approved' },
+                  { id: 'tx_104', amount: 90, status: 'approved' }
+                ],
+                batch_size: 2
+              }
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'LoopIteratorComponent',
+          position: { x: 380, y: 200 },
+          data: {
+            inputs: {
+              items_path: 'transactions',
+              batch_size: 2,
+              batch_index: 0
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'KeyValueStoreComponent',
+          position: { x: 740, y: 200 },
+          data: {
+            inputs: {
+              operation: 'increment',
+              key: 'processed_batches_total',
+              amount: 1,
+              namespace: 'billing'
+            }
+          }
+        },
+        {
+          id: n4Id,
+          type: 'DiscordWebhookComponent',
+          position: { x: 1080, y: 200 },
+          data: {
+            inputs: {
+              webhook_url: 'https://discord.com/api/webhooks/00/xx',
+              username: 'BatchProcessorBot',
+              content: '📦 Lote de transações processado com sucesso!',
+              embed_title: 'Métricas de Processamento em Lote',
+              embed_description: 'Lote fatiado via Loop Iterator e contador atualizado no Key-Value Store.',
+              embed_color: '#5865F2'
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'data', target: n2Id, targetHandle: 'items' },
+        { id: 'e2', source: n2Id, sourceHandle: 'batch_info', target: n3Id, targetHandle: 'value' },
+        { id: 'e3', source: n3Id, sourceHandle: 'result', target: n4Id, targetHandle: 'content' }
+      ]
+    } else if (templateType === 'resilient_try_catch_telegram_flow') {
+      flowId.value = 'flow-resilient-try-catch-telegram'
+      flowName.value = 'Pipeline Resiliente: Try/Catch & Telegram'
+      flowDescription.value = 'Ingere webhook externo, mapeia e normaliza campos declarativamente, isola execução em Try/Catch e ramifica em sucesso vs. alerta imediato no Telegram.'
+      const n1Id = 'wh-1'
+      const n2Id = 'map-1'
+      const n3Id = 'try-1'
+      const n4Id = 'tf-ok'
+      const n5Id = 'tg-err'
+      nodes.value = [
+        {
+          id: n1Id,
+          type: 'WebhookTriggerComponent',
+          position: { x: 60, y: 200 },
+          data: {
+            inputs: {
+              method: 'POST',
+              auth_mode: 'none'
+            }
+          }
+        },
+        {
+          id: n2Id,
+          type: 'DataMapperComponent',
+          position: { x: 380, y: 200 },
+          data: {
+            inputs: {
+              field_mappings: {
+                user_id: 'customer.id',
+                email: 'customer.contact.email',
+                plan: 'subscription.tier'
+              },
+              include_unmapped: false
+            }
+          }
+        },
+        {
+          id: n3Id,
+          type: 'TryCatchComponent',
+          position: { x: 740, y: 200 },
+          data: {
+            inputs: {
+              fallback_value: { recovered: true, mode: 'safe_mode' },
+              catch_upstream_errors: true
+            }
+          }
+        },
+        {
+          id: n4Id,
+          type: 'JsonTransformComponent',
+          position: { x: 1080, y: 100 },
+          data: {
+            inputs: {
+              expression: "dict(status='processed', user=payload.get('user_id'), active=True)"
+            }
+          }
+        },
+        {
+          id: n5Id,
+          type: 'TelegramWebhookComponent',
+          position: { x: 1080, y: 320 },
+          data: {
+            inputs: {
+              bot_token: '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11',
+              chat_id: '-100123456789',
+              text: '🚨 <b>ALERTA FLOWBUILD</b>: Falha interceptada no pipeline!\nDetalhes: Recuperado em modo fallback seguro.',
+              parse_mode: 'HTML'
+            }
+          }
+        }
+      ]
+      edges.value = [
+        { id: 'e1', source: n1Id, sourceHandle: 'payload', target: n2Id, targetHandle: 'data' },
+        { id: 'e2', source: n2Id, sourceHandle: 'mapped_data', target: n3Id, targetHandle: 'input_data' },
+        { id: 'e3', source: n3Id, sourceHandle: 'success_branch', target: n4Id, targetHandle: 'input_data' },
+        { id: 'e4', source: n3Id, sourceHandle: 'error_branch', target: n5Id, targetHandle: 'text' }
       ]
     } else {
       // Fallback: Default http_enrich
