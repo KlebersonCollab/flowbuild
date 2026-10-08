@@ -25,7 +25,8 @@ import {
   Calculator,
   FileSpreadsheet,
   Database,
-  HardDrive
+  HardDrive,
+  Repeat
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -191,6 +192,17 @@ const categoryMeta = computed(() => {
   if (name.includes('switch') || name.includes('router')) {
     return {
       icon: GitFork,
+      bg: 'bg-indigo-500/10',
+      text: 'text-indigo-400',
+      border: 'border-indigo-500/30',
+      badge: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+      dot: 'bg-indigo-400'
+    }
+  }
+
+  if (name.includes('loop') || name.includes('iterator') || name.includes('batch')) {
+    return {
+      icon: Repeat,
       bg: 'bg-indigo-500/10',
       text: 'text-indigo-400',
       border: 'border-indigo-500/30',

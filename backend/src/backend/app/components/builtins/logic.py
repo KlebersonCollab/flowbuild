@@ -6,6 +6,7 @@ from backend.app.components.inputs import (
     BaseInput,
     DictInput,
     FloatInput,
+    IntInput,
     SelectInput,
     StrInput,
 )
@@ -325,3 +326,180 @@ class SwitchNodeComponent(BaseComponent):
 
     async def get_evaluated_value(self) -> Any:
         return self._last_evaluated_val
+
+
+class LoopIteratorComponent(BaseComponent):
+    name: ClassVar[str] = "LoopIteratorComponent"
+    display_name: ClassVar[str] = "Loop Iterator"
+    category: ClassVar[str] = "Logic"
+    description: ClassVar[str] = (
+        "Partitions collections into manageable batches, slices subsets, and emits iteration metrics without violating DAG acyclicity."
+    )
+    icon: ClassVar[str] = "repeat"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        DictInput(
+            name="items",
+            label="Collection Items",
+            placeholder="Array of items or dict containing a collection",
+            default=[],
+            required=True,
+        ),
+        StrInput(
+            name="items_path",
+            label="Items Array Path",
+            placeholder="e.g. data.records (optional dot-notation)",
+            default="",
+        ),
+        IntInput(
+            name="batch_size",
+            label="Batch Size",
+            default=10,
+        ),
+        IntInput(
+            name="batch_index",
+            label="Batch Index (0-based)",
+            default=0,
+        ),
+        IntInput(
+            name="max_batches",
+            label="Max Batches (0 = unlimited)",
+            default=0,
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="current_batch", label="Current Batch", type="list", method="get_current_batch"),
+        Output(name="batches", label="All Batches", type="list", method="get_batches"),
+        Output(name="total_items", label="Total Items", type="int", method="get_total_items"),
+        Output(name="total_batches", label="Total Batches", type="int", method="get_total_batches"),
+        Output(name="has_more", label="Has More Batches", type="bool", method="get_has_more"),
+        Output(name="batch_info", label="Batch Info", type="dict", method="get_batch_info"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._current_batch: list[Any] = []
+        self._batches: list[list[Any]] = []
+        self._total_items: int = 0
+        self._total_batches: int = 0
+        self._has_more: bool = False
+        self._batch_info: dict[str, Any] = {}
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.process_batches()
+
+    async def process_batches(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        raw_items = inp.get("items", [])
+        items_path = str(inp.get("items_path") or "").strip()
+        batch_size = inp.get("batch_size", 10)
+        try:
+            batch_size_int = max(1, int(batch_size))
+        except Exception:
+            batch_size_int = 1
+
+        batch_index = inp.get("batch_index", 0)
+        try:
+            batch_index_int = max(0, int(batch_index))
+        except Exception:
+            batch_index_int = 0
+
+        max_batches = inp.get("max_batches", 0)
+        try:
+            max_batches_int = max(0, int(max_batches))
+        except Exception:
+            max_batches_int = 0
+
+        # Extract items collection
+        items_list: list[Any] = []
+        if isinstance(raw_items, list):
+            items_list = raw_items
+        elif isinstance(raw_items, dict):
+            if items_path:
+                curr: Any = raw_items
+                for part in items_path.split("."):
+                    if isinstance(curr, dict):
+                        curr = curr.get(part, [])
+                    else:
+                        curr = []
+                        break
+                if isinstance(curr, list):
+                    items_list = curr
+                else:
+                    items_list = [curr] if curr is not None else []
+            else:
+                for candidate in ["items", "results", "data", "rows", "records", "user_ids"]:
+                    if candidate in raw_items and isinstance(raw_items[candidate], list):
+                        items_list = raw_items[candidate]
+                        break
+                else:
+                    items_list = [raw_items]
+        elif raw_items is not None and raw_items != "":
+            items_list = [raw_items]
+
+        total_items = len(items_list)
+        batches: list[list[Any]] = []
+        if total_items > 0:
+            for i in range(0, total_items, batch_size_int):
+                batches.append(items_list[i : i + batch_size_int])
+                if max_batches_int > 0 and len(batches) >= max_batches_int:
+                    break
+
+        total_batches = len(batches)
+        if 0 <= batch_index_int < total_batches:
+            current_batch = batches[batch_index_int]
+            has_more = batch_index_int < total_batches - 1
+            start_idx = batch_index_int * batch_size_int
+            end_idx = min(start_idx + len(current_batch), total_items)
+        else:
+            current_batch = []
+            has_more = False
+            start_idx = 0
+            end_idx = 0
+
+        batch_info = {
+            "batch_index": batch_index_int,
+            "batch_size": batch_size_int,
+            "batch_items_count": len(current_batch),
+            "start_index": start_idx,
+            "end_index": end_idx,
+            "has_more": has_more,
+        }
+
+        self._current_batch = current_batch
+        self._batches = batches
+        self._total_items = total_items
+        self._total_batches = total_batches
+        self._has_more = has_more
+        self._batch_info = batch_info
+
+        return {
+            "current_batch": self._current_batch,
+            "batches": self._batches,
+            "total_items": self._total_items,
+            "total_batches": self._total_batches,
+            "has_more": self._has_more,
+            "batch_info": self._batch_info,
+        }
+
+    async def get_current_batch(self) -> list[Any]:
+        return self._current_batch
+
+    async def get_batches(self) -> list[list[Any]]:
+        return self._batches
+
+    async def get_total_items(self) -> int:
+        return self._total_items
+
+    async def get_total_batches(self) -> int:
+        return self._total_batches
+
+    async def get_has_more(self) -> bool:
+        return self._has_more
+
+    async def get_batch_info(self) -> dict[str, Any]:
+        return self._batch_info
+
