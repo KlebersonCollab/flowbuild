@@ -22,7 +22,8 @@ import {
   ArrowRightLeft,
   Calculator,
   FileSpreadsheet,
-  Database
+  Database,
+  HardDrive
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useFlowStore } from '../stores/flowStore'
@@ -70,6 +71,7 @@ function getNodeIcon(comp: ComponentDefinition) {
   if (name.includes('mapper')) return ArrowRightLeft
   if (name.includes('aggregator')) return Calculator
   if (name.includes('csv')) return FileSpreadsheet
+  if (name.includes('keyvalue') || name.includes('store') || name.includes('kv')) return HardDrive
   if (name.includes('database') || name.includes('sql') || cat.includes('storage')) return Database
   if (name.includes('discord')) return MessageCircle
   if (name.includes('slack') || name.includes('notification')) return MessageSquare

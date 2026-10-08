@@ -24,7 +24,8 @@ import {
   ArrowRightLeft,
   Calculator,
   FileSpreadsheet,
-  Database
+  Database,
+  HardDrive
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -140,6 +141,17 @@ const categoryMeta = computed(() => {
       border: 'border-emerald-500/30',
       badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
       dot: 'bg-emerald-400'
+    }
+  }
+
+  if (name.includes('keyvalue') || name.includes('store') || name.includes('kv')) {
+    return {
+      icon: HardDrive,
+      bg: 'bg-teal-500/10',
+      text: 'text-teal-400',
+      border: 'border-teal-500/30',
+      badge: 'bg-teal-500/15 text-teal-300 border-teal-500/30',
+      dot: 'bg-teal-400'
     }
   }
 

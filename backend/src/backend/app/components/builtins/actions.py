@@ -2074,6 +2074,141 @@ class DatabaseQueryComponent(BaseComponent):
         return self._columns
 
 
+class KeyValueStoreComponent(BaseComponent):
+    name: ClassVar[str] = "KeyValueStoreComponent"
+    display_name: ClassVar[str] = "Key-Value Store"
+    category: ClassVar[str] = "Storage"
+    description: ClassVar[str] = (
+        "Persists and manages cross-execution state, flags, and atomic counters across workflow runs."
+    )
+    icon: ClassVar[str] = "hard-drive"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        SelectInput(
+            name="operation",
+            label="Operation",
+            options=["get", "set", "delete", "increment", "list"],
+            default="get",
+        ),
+        StrInput(
+            name="key",
+            label="Key",
+            placeholder="e.g. rate_limit_counter or user_session",
+            default="my_key",
+            required=True,
+        ),
+        DictInput(
+            name="value",
+            label="Value",
+            placeholder="Value to store (string, number, or JSON object)",
+            default="",
+        ),
+        StrInput(
+            name="namespace",
+            label="Namespace",
+            placeholder="Logical group (e.g. default, cache, auth)",
+            default="default",
+        ),
+        StrInput(
+            name="default_value",
+            label="Default Fallback Value",
+            placeholder="Value returned when key does not exist",
+            default="",
+        ),
+        IntInput(
+            name="amount",
+            label="Increment Amount",
+            default=1,
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="result", label="Result", type="any", method="get_result"),
+        Output(name="found", label="Found", type="bool", method="get_found"),
+        Output(name="key", label="Key", type="str", method="get_key"),
+        Output(name="previous_value", label="Previous Value", type="any", method="get_previous_value"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._result: Any = None
+        self._found: bool = False
+        self._key: str = ""
+        self._previous_value: Any = None
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.execute_kv()
+
+    async def execute_kv(self) -> dict[str, Any]:
+        from backend.app.db import db_manager
+
+        inp = self.get_inputs()
+        operation = str(inp.get("operation") or "get").lower().strip()
+        key = str(inp.get("key") or "my_key").strip()
+        val = inp.get("value")
+        namespace = str(inp.get("namespace") or "default").strip()
+        if not namespace:
+            namespace = "default"
+        default_val = inp.get("default_value", "")
+        amount = inp.get("amount", 1)
+        try:
+            amount_num = int(amount)
+        except Exception:
+            try:
+                amount_num = float(amount)
+            except Exception:
+                amount_num = 1
+
+        self._key = key
+
+        def _sync_worker() -> tuple[Any, bool, Any]:
+            if operation == "set":
+                res, prev = db_manager.kv_set(key, val, namespace=namespace)
+                found = prev is not None
+                return res, found, prev
+            elif operation == "delete":
+                deleted = db_manager.kv_delete(key, namespace=namespace)
+                return deleted, deleted, None
+            elif operation == "increment":
+                res, prev = db_manager.kv_increment(key, amount=amount_num, namespace=namespace)
+                return res, True, prev
+            elif operation == "list":
+                keys = db_manager.kv_list(prefix=key if key != "my_key" else "", namespace=namespace)
+                return keys, len(keys) > 0, None
+            else: # "get"
+                res, found = db_manager.kv_get(key, namespace=namespace, default=default_val)
+                return res, found, None
+
+        res, found, prev = await asyncio.to_thread(_sync_worker)
+        self._result = res
+        self._found = found
+        self._previous_value = prev
+        return self._build_result()
+
+    def _build_result(self) -> dict[str, Any]:
+        return {
+            "result": self._result,
+            "found": self._found,
+            "key": self._key,
+            "previous_value": self._previous_value,
+        }
+
+    async def get_result(self) -> Any:
+        return self._result
+
+    async def get_found(self) -> bool:
+        return self._found
+
+    async def get_key(self) -> str:
+        return self._key
+
+    async def get_previous_value(self) -> Any:
+        return self._previous_value
+
+
+
 
 
 

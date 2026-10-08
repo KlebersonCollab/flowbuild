@@ -8,6 +8,7 @@ from backend.app.components.builtins.actions import (
     EmailNotificationComponent,
     HttpRequestComponent,
     JsonTransformComponent,
+    KeyValueStoreComponent,
     PaginatedHttpComponent,
     PythonScriptComponent,
     SlackWebhookComponent,
@@ -43,6 +44,7 @@ def register_all_builtins() -> None:
     registry.register(DataAggregatorComponent)
     registry.register(CsvParserComponent)
     registry.register(DatabaseQueryComponent)
+    registry.register(KeyValueStoreComponent)
     registry.register(SlackWebhookComponent)
     registry.register(DiscordWebhookComponent)
     registry.register(TelegramWebhookComponent)
@@ -66,6 +68,7 @@ __all__ = [
     "HttpRequestComponent",
     "IfConditionComponent",
     "JsonTransformComponent",
+    "KeyValueStoreComponent",
     "ManualTriggerComponent",
     "PaginatedHttpComponent",
     "PythonScriptComponent",

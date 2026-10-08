@@ -87,6 +87,17 @@ class DatabaseManager:
             Column("updated_at", String(64), nullable=False),
         )
 
+        self.kv_store_table = Table(
+            "kv_store",
+            self.metadata,
+            Column("key", String(190), primary_key=True),
+            Column("namespace", String(64), primary_key=True, default="default"),
+            Column("value", Text, nullable=False),
+            Column("value_type", String(32), default="string"),
+            Column("created_at", String(64), nullable=False),
+            Column("updated_at", String(64), nullable=False),
+        )
+
     @property
     def db_path(self) -> str:
         return self._db_path
@@ -751,6 +762,170 @@ class DatabaseManager:
                 )
 
         return self.get_variable(var_id)  # type: ignore[return-value]
+
+    # --- KEY-VALUE STORE CRUD ---
+
+    def kv_get(self, key: str, namespace: str = "default", default: Any = None) -> tuple[Any, bool]:
+        with self.engine.connect() as conn:
+            stmt = select(self.kv_store_table).where(
+                (self.kv_store_table.c.key == key)
+                & (self.kv_store_table.c.namespace == namespace)
+            )
+            row = conn.execute(stmt).mappings().fetchone()
+            if not row:
+                return default, False
+
+            val_str = row["value"]
+            val_type = row["value_type"]
+            if val_type == "json":
+                try:
+                    return json.loads(val_str), True
+                except Exception:
+                    return val_str, True
+            elif val_type == "number":
+                try:
+                    return (float(val_str) if "." in val_str else int(val_str)), True
+                except Exception:
+                    return val_str, True
+            elif val_type == "boolean":
+                return val_str.lower() == "true", True
+            return val_str, True
+
+    def kv_set(self, key: str, value: Any, namespace: str = "default") -> tuple[Any, Any]:
+        now = datetime.now(timezone.utc).isoformat()
+        val_type = "string"
+        if isinstance(value, (dict, list)):
+            val_str = json.dumps(value)
+            val_type = "json"
+        elif isinstance(value, bool):
+            val_str = "true" if value else "false"
+            val_type = "boolean"
+        elif isinstance(value, (int, float)):
+            val_str = str(value)
+            val_type = "number"
+        else:
+            val_str = str(value) if value is not None else ""
+            if val_str.startswith("{") or val_str.startswith("["):
+                try:
+                    parsed = json.loads(val_str)
+                    val_type = "json"
+                    value = parsed
+                except Exception:
+                    pass
+
+        with self.engine.begin() as conn:
+            stmt = select(self.kv_store_table).where(
+                (self.kv_store_table.c.key == key)
+                & (self.kv_store_table.c.namespace == namespace)
+            )
+            existing = conn.execute(stmt).mappings().fetchone()
+            prev_val = None
+            if existing:
+                prev_raw = existing["value"]
+                prev_type = existing["value_type"]
+                if prev_type == "json":
+                    try:
+                        prev_val = json.loads(prev_raw)
+                    except Exception:
+                        prev_val = prev_raw
+                elif prev_type == "number":
+                    try:
+                        prev_val = float(prev_raw) if "." in prev_raw else int(prev_raw)
+                    except Exception:
+                        prev_val = prev_raw
+                elif prev_type == "boolean":
+                    prev_val = prev_raw.lower() == "true"
+                else:
+                    prev_val = prev_raw
+
+                conn.execute(
+                    update(self.kv_store_table)
+                    .where(
+                        (self.kv_store_table.c.key == key)
+                        & (self.kv_store_table.c.namespace == namespace)
+                    )
+                    .values(value=val_str, value_type=val_type, updated_at=now)
+                )
+            else:
+                conn.execute(
+                    insert(self.kv_store_table).values(
+                        key=key,
+                        namespace=namespace,
+                        value=val_str,
+                        value_type=val_type,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+            return value, prev_val
+
+    def kv_delete(self, key: str, namespace: str = "default") -> bool:
+        with self.engine.begin() as conn:
+            stmt = select(self.kv_store_table).where(
+                (self.kv_store_table.c.key == key)
+                & (self.kv_store_table.c.namespace == namespace)
+            )
+            existing = conn.execute(stmt).mappings().fetchone()
+            if not existing:
+                return False
+            conn.execute(
+                delete(self.kv_store_table).where(
+                    (self.kv_store_table.c.key == key)
+                    & (self.kv_store_table.c.namespace == namespace)
+                )
+            )
+            return True
+
+    def kv_increment(self, key: str, amount: float | int = 1, namespace: str = "default") -> tuple[float | int, float | int | None]:
+        now = datetime.now(timezone.utc).isoformat()
+        with self.engine.begin() as conn:
+            stmt = select(self.kv_store_table).where(
+                (self.kv_store_table.c.key == key)
+                & (self.kv_store_table.c.namespace == namespace)
+            )
+            existing = conn.execute(stmt).mappings().fetchone()
+            if existing:
+                prev_raw = existing["value"]
+                try:
+                    prev_num = float(prev_raw) if "." in prev_raw else int(prev_raw)
+                except Exception:
+                    prev_num = 0
+                new_num = prev_num + amount
+                val_str = str(new_num)
+                conn.execute(
+                    update(self.kv_store_table)
+                    .where(
+                        (self.kv_store_table.c.key == key)
+                        & (self.kv_store_table.c.namespace == namespace)
+                    )
+                    .values(value=val_str, value_type="number", updated_at=now)
+                )
+                return new_num, prev_num
+            else:
+                new_num = amount
+                val_str = str(new_num)
+                conn.execute(
+                    insert(self.kv_store_table).values(
+                        key=key,
+                        namespace=namespace,
+                        value=val_str,
+                        value_type="number",
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+                return new_num, None
+
+    def kv_list(self, prefix: str = "", namespace: str = "default", limit: int = 100) -> list[str]:
+        with self.engine.connect() as conn:
+            stmt = select(self.kv_store_table.c.key).where(
+                self.kv_store_table.c.namespace == namespace
+            )
+            if prefix:
+                stmt = stmt.where(self.kv_store_table.c.key.like(f"{prefix}%"))
+            stmt = stmt.limit(limit)
+            rows = conn.execute(stmt).fetchall()
+            return [r[0] for r in rows]
 
 
 # Global singleton instance for the app
