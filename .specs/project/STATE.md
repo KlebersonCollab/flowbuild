@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Flow Control & Reliability Components (ADR 0031: TryCatchComponent) - Controle de Fluxo & Confiabilidade.
-- **Progress**: LoopIteratorComponent (ADR 0030) fully implemented and verified (152 Pytest tests, 129 Vitest tests), committed at 1f8b600 with Repeat icon and Indigo styling.
-- **Next Steps**: Implement TryCatchComponent (ADR 0031) for error boundaries, exception capture, fallback branch routing, and resilience.
+- **Current Task**: Showcase Workflow Templates & Library Expansion (ADR 0032) - Modelos de Fluxos com Novas Nodes.
+- **Progress**: Cluster 1 (Mensageria), Cluster 2 (Transformação), Cluster 3 (Armazenamento), and Cluster 4 (Controle de Fluxo & Confiabilidade) 100% COMPLETE. TryCatchComponent (ADR 0031) verified with 157 Pytest tests and 133 Vitest tests, committed at 599494b with ShieldAlert icon and Rose styling.
+- **Next Steps**: Expand showcase templates in flowStore and TopNav demonstrating native integration of new nodes (Database, CSV, KeyValue, Loop, Try/Catch, Telegram, Email).
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0031 (Try / Catch Component for Error Handling and Resilient Routing)**: Introduced native `TryCatchComponent` in the Logic category supporting error boundary encapsulation, upstream failure interception in `FlowRunner`, fallback value emission, dual branching (`success_branch`, `error_branch`), cascading branch skipping, `ShieldAlert` icon, and Rose styling.
 - **2026-10-07 - ADR 0030 (Loop Iterator Component for Collection Chunking and Batch Processing)**: Introduced native `LoopIteratorComponent` in the Logic category supporting collection batching (`batch_size`), pagination (`batch_index`), path traversal (`items_path`), iteration telemetry (`has_more`, `batch_info`), `Repeat` icon, and Indigo styling.
 - **2026-10-07 - ADR 0029 (Key-Value Store Component for Cross-Execution State and Counters)**: Introduced native `KeyValueStoreComponent` in the Storage category backed by a dedicated `kv_store` table in `DatabaseManager`, supporting `get`, `set`, `delete`, `increment`, and `list` operations, namespace isolation, type preservation (JSON, numbers, booleans, strings), `HardDrive` icon, and Teal styling.
 - **2026-10-07 - ADR 0028 (Database Query Component for SQL Execution and Storage)**: Introduced native `DatabaseQueryComponent` in the Storage category supporting parameterized SQL queries via SQLAlchemy (`text(query)`), safe dictionary binding (`:param`), configurable fetch modes (`"all"`, `"one"`, `"none"`), connection fallback to `db_manager.engine` or custom database URLs, non-blocking execution via `asyncio.to_thread`, `Database` icon, and Teal styling.
