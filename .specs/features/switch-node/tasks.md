@@ -14,7 +14,7 @@
 | [x] | TASK-02 | feat | Implement SwitchNodeComponent and expand FlowRunner conditional handle skipping | `backend/src/backend/app/components/builtins/logic.py`, `backend/src/backend/app/components/builtins/__init__.py`, `backend/src/backend/app/engine/runner.py` | TASK-01 | pytest 82 passed (5/5 SwitchNode tests passing, 0 regressions) |
 | [x] | TASK-03 | test | Add frontend unit tests verifying SwitchNodeComponent schema, ports, and palette display | `frontend/tests/switch_node.test.ts` | TASK-02 | vitest 4 passed in tests/switch_node.test.ts |
 | [x] | TASK-04 | feat | Update CustomNode and ComponentPalette with GitFork icon and Indigo styling for Switch / Router | `frontend/src/components/CustomNode.vue`, `frontend/src/components/ComponentPalette.vue` | TASK-03 | vitest 79 passed, vue-tsc & vite build clean |
-| [ ] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Pending sensor run |
+| [x] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Commit `677ba0b` - Pytest 82 passed, Vitest 79 passed, Vue build clean, SDD integrity 100%, Spec drift OK |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).
