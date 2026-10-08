@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Data Transformation Components (ADR 0027: CsvParserComponent) - Transformação & Manipulação de Dados.
-- **Progress**: DataAggregatorComponent (ADR 0026) fully implemented and verified (126 Pytest tests, 113 Vitest tests), committed at b0b05f2 with Calculator icon and Emerald styling.
-- **Next Steps**: Implement CsvParserComponent (ADR 0027) for bidirectional CSV parsing and generation (CSV to JSON list and JSON to CSV string).
+- **Current Task**: Database & Storage Components (ADR 0028: DatabaseQueryComponent) - Banco de Dados & Armazenamento.
+- **Progress**: Cluster 2 (Transformação & Manipulação de Dados) 100% COMPLETE: DataMapperComponent (ADR 0025), DataAggregatorComponent (ADR 0026), and CsvParserComponent (ADR 0027 - committed at 661acf2) fully implemented and verified (132 Pytest tests, 117 Vitest tests passing).
+- **Next Steps**: Implement DatabaseQueryComponent (ADR 0028) for executing SQL queries against SQLite/PostgreSQL with parameter binding, row serialization, and mutation metrics.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0027 (CSV Parser Component for Delimited Data Serialization and Parsing)**: Introduced native `CsvParserComponent` in the Transform category supporting bidirectional CSV parsing (CSV string to list of dicts) and generation (JSON list to CSV string), configurable delimiters, header handling, empty line skipping, custom column ordering, `FileSpreadsheet` icon, and Emerald styling.
 - **2026-10-07 - ADR 0026 (Data Aggregator Component for Collection Metrics & Grouping)**: Introduced native `DataAggregatorComponent` in the Transform category supporting mathematical and statistical aggregations (`sum`, `avg`, `min`, `max`, `count`, `concat`, `all`), `group_by` partitioning, safe numeric conversion, `Calculator` icon, and Emerald styling.
 - **2026-10-07 - ADR 0025 (Declarative Data Mapper Component for Record Transformation)**: Introduced native `DataMapperComponent` in the Transform category supporting declarative field mapping, dot-notation path extraction (`data.user.name`), array indexing (`items.0`), items collection traversal, unmapped field passthrough, `ArrowRightLeft` icon, and Emerald styling.
 - **2026-10-07 - ADR 0024 (Email Notification Component - SMTP Delivery)**: Introduced native `EmailNotificationComponent` in the Actions category supporting standard SMTP delivery, STARTTLS (587), SSL/TLS (465), multi-recipient dispatches, HTML and plaintext MIME bodies, non-blocking execution via `asyncio.to_thread`, `Mail` icon, and Violet styling.
