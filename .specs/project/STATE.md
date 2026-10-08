@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Showcase Workflow Templates & Library Expansion (ADR 0032) - Modelos de Fluxos com Novas Nodes.
-- **Progress**: Cluster 1 (Mensageria), Cluster 2 (Transformação), Cluster 3 (Armazenamento), and Cluster 4 (Controle de Fluxo & Confiabilidade) 100% COMPLETE. TryCatchComponent (ADR 0031) verified with 157 Pytest tests and 133 Vitest tests, committed at 599494b with ShieldAlert icon and Rose styling.
-- **Next Steps**: Expand showcase templates in flowStore and TopNav demonstrating native integration of new nodes (Database, CSV, KeyValue, Loop, Try/Catch, Telegram, Email).
+- **Current Task**: Full Node Expansion Sequence & Showcase Template Library (ADR 0022 through ADR 0032) - 100% COMPLETE.
+- **Progress**: All 4 clusters (Mensageria & Notificações, Transformação & Manipulação de Dados, Banco de Dados & Armazenamento, Controle de Fluxo & Confiabilidade) and 12-workflow Showcase Template Library fully implemented, verified across 157 Pytest tests and 136 Vitest tests with 0 spec drift.
+- **Next Steps**: Await user feedback or instructions for next milestones.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0032 (Showcase Workflow Templates for Modern Data, Storage, Messaging and Flow Control Components)**: Expanded template library with 3 production-grade workflows (`database_csv_export_flow`, `batch_kv_discord_flow`, `resilient_try_catch_telegram_flow`), reorganized TopNav dropdown into 4 semantic sections with Linear dark styling, verified DAG node and edge validity across 136 Vitest tests.
 - **2026-10-07 - ADR 0031 (Try / Catch Component for Error Handling and Resilient Routing)**: Introduced native `TryCatchComponent` in the Logic category supporting error boundary encapsulation, upstream failure interception in `FlowRunner`, fallback value emission, dual branching (`success_branch`, `error_branch`), cascading branch skipping, `ShieldAlert` icon, and Rose styling.
 - **2026-10-07 - ADR 0030 (Loop Iterator Component for Collection Chunking and Batch Processing)**: Introduced native `LoopIteratorComponent` in the Logic category supporting collection batching (`batch_size`), pagination (`batch_index`), path traversal (`items_path`), iteration telemetry (`has_more`, `batch_info`), `Repeat` icon, and Indigo styling.
 - **2026-10-07 - ADR 0029 (Key-Value Store Component for Cross-Execution State and Counters)**: Introduced native `KeyValueStoreComponent` in the Storage category backed by a dedicated `kv_store` table in `DatabaseManager`, supporting `get`, `set`, `delete`, `increment`, and `list` operations, namespace isolation, type preservation (JSON, numbers, booleans, strings), `HardDrive` icon, and Teal styling.
