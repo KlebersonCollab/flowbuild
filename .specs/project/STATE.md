@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Completed GitHub Showcase README & Visual Documentation (ADR 0016).
-- **Progress**: 100% (4 live 1080p screenshots generated, README.md published, MIT LICENSE added, 71 Pytest & 71 Vitest passing, SDD integrity 100%).
-- **Next Steps**: Ready for Git commit, push, and publication to GitHub.
+- **Current Task**: Implementation of Delay / Sleep Node Component (ADR 0017).
+- **Progress**: Planning Phase Completed (ADR 0017 accepted, plan.md, spec.md, tasks.md approved, SDD integrity verified).
+- **Next Steps**: Execute atomic tasks TASK-01 through TASK-05 via sdd-executor.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0017 (Delay and Sleep Node Component for Flow Execution)**: Introduced native `DelayComponent` in the Logic category with non-blocking `asyncio.sleep`, configurable duration (`delay`) and units (`seconds`, `milliseconds`, `minutes`), transparent payload pass-through to output handle `data`, `waited_seconds` telemetry output, and inline canvas number input controls in `CustomNode.vue`.
 - **2026-10-07 - ADR 0016 (Canonical Showcase README & Visual Documentation Engine)**: Created production-grade GitHub showcase README.md with Linear-dark aesthetics, Mermaid architecture diagram, component matrix, quickstart guide, and 4 real 1080p screenshots captured via automated headless Chrome engine (`capture-screenshots.mjs`). Included open-source MIT License.
 - **2026-10-07 - ADR 0015 (Variable Environment Scoping and Target Environment Selection)**: Added `environment` dropdown selector (`"current"`, `"all"`, `"dev"`, `"qa"`, `"prd"`, default `"current"`) to `VariableComponent`. Allows workflows to save or retrieve variables targeting the active execution environment (`current`), universally (`all`), or specifically to a desired deployment stage (`dev`, `qa`, `prd`) in both `mode: "get"` and `mode: "set"`.
 - **2026-10-07 - ADR 0014 (Variable Get/Set Mode Selection & Execution Persistence)**: Enhanced `VariableComponent` with dual operational modes (`mode: "get" | "set"`), variable scoping (`flow` vs `global`), optional DB persistence (`persist: bool`), and dynamic value assignment from upstream nodes or static inputs. Added `upsert_variable` in `DatabaseManager`, real-time runtime propagation into `runner.custom_variables`, and updated `CustomNode.vue` with inline boolean controls. Preserved 100% backwards compatibility for existing flows and single-key assertions.

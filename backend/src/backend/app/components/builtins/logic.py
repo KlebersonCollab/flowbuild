@@ -1,9 +1,12 @@
+import asyncio
 from typing import Any, ClassVar
 
 from backend.app.components.base import BaseComponent
 from backend.app.components.inputs import (
     BaseInput,
     DictInput,
+    FloatInput,
+    SelectInput,
     StrInput,
 )
 from backend.app.components.outputs import Output
@@ -97,3 +100,94 @@ class IfConditionComponent(BaseComponent):
 
     async def get_branch(self) -> str:
         return self._last_branch
+
+
+class DelayComponent(BaseComponent):
+    name: ClassVar[str] = "DelayComponent"
+    display_name: ClassVar[str] = "Delay / Sleep"
+    category: ClassVar[str] = "Logic"
+    description: ClassVar[str] = (
+        "Suspends workflow execution for a specified duration before proceeding to downstream nodes."
+    )
+    icon: ClassVar[str] = "clock"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        BaseInput(
+            name="input_data",
+            label="Incoming Data",
+            required=False,
+            default={},
+            description="Incoming payload to pass through transparently to downstream nodes",
+        ),
+        FloatInput(
+            name="delay",
+            label="Duration",
+            default=1.0,
+            required=True,
+            description="Amount of time to wait",
+        ),
+        SelectInput(
+            name="unit",
+            label="Time Unit",
+            options=["seconds", "milliseconds", "minutes"],
+            default="seconds",
+            description="Time unit (seconds, milliseconds, minutes)",
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="data", label="Output Data", type="dict", method="get_data"),
+        Output(
+            name="waited_seconds",
+            label="Waited Seconds",
+            type="float",
+            method="get_waited_seconds",
+        ),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._last_data: Any = None
+        self._last_waited_seconds: float = 0.0
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.wait()
+
+    async def wait(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        data = inp.get("input_data", {})
+        delay_val = inp.get("delay", 1.0)
+        unit = str(inp.get("unit", "seconds")).lower()
+
+        try:
+            delay_num = float(delay_val)
+        except (ValueError, TypeError):
+            delay_num = 0.0
+
+        if unit in ("milliseconds", "ms"):
+            seconds = max(0.0, delay_num / 1000.0)
+        elif unit in ("minutes", "min"):
+            seconds = max(0.0, delay_num * 60.0)
+        else:
+            seconds = max(0.0, delay_num)
+
+        if seconds > 0:
+            await asyncio.sleep(seconds)
+
+        self._last_data = data
+        self._last_waited_seconds = seconds
+
+        return {
+            "data": data,
+            "waited_seconds": seconds,
+            "delay": delay_num,
+            "unit": unit,
+        }
+
+    async def get_data(self) -> Any:
+        return self._last_data
+
+    async def get_waited_seconds(self) -> float:
+        return self._last_waited_seconds

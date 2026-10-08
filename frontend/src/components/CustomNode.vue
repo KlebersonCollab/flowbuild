@@ -13,7 +13,8 @@ import {
   SkipForward,
   Trash2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Clock
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -96,6 +97,17 @@ const categoryMeta = computed(() => {
       border: 'border-emerald-500/30',
       badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
       dot: 'bg-emerald-400'
+    }
+  }
+
+  if (name.includes('delay') || name.includes('sleep') || name.includes('await') || name.includes('timer')) {
+    return {
+      icon: Clock,
+      bg: 'bg-amber-500/10',
+      text: 'text-amber-400',
+      border: 'border-amber-500/30',
+      badge: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+      dot: 'bg-amber-400'
     }
   }
 
@@ -287,6 +299,14 @@ function onDeleteNode(e: Event) {
               @input="onInputChange(input.name, ($event.target as HTMLInputElement).value)"
               :placeholder="input.placeholder || 'Digite o valor...'"
               class="w-full text-[11px] rounded-md bg-[#141516] border border-[#23252a] px-2.5 py-1 text-[#f7f8f8] placeholder-[#62666d] focus:border-[#5e6ad2] focus:ring-1 focus:ring-[#5e6ad2] outline-none transition-colors nodrag font-mono"
+            />
+            <input
+              v-else-if="input.type === 'int' || input.type === 'float'"
+              type="number"
+              step="any"
+              :value="data.inputs[input.name] ?? input.default ?? 0"
+              @input="onInputChange(input.name, Number(($event.target as HTMLInputElement).value))"
+              class="w-full text-[11px] rounded-md bg-[#141516] border border-[#23252a] px-2.5 py-1 text-[#f7f8f8] focus:border-[#5e6ad2] focus:ring-1 focus:ring-[#5e6ad2] outline-none transition-colors nodrag font-mono"
             />
             <select
               v-else-if="input.type === 'select'"

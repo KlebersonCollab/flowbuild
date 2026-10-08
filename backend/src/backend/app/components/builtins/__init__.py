@@ -5,6 +5,7 @@ from backend.app.components.builtins.actions import (
     PythonScriptComponent,
 )
 from backend.app.components.builtins.logic import (
+    DelayComponent,
     IfConditionComponent,
 )
 from backend.app.components.builtins.triggers import (
@@ -28,11 +29,13 @@ def register_all_builtins() -> None:
     registry.register(PythonScriptComponent)
     registry.register(JsonTransformComponent)
     registry.register(IfConditionComponent)
+    registry.register(DelayComponent)
     registry.register(VariableComponent)
 
 
 __all__ = [
     "CronTriggerComponent",
+    "DelayComponent",
     "HttpRequestComponent",
     "IfConditionComponent",
     "JsonTransformComponent",
