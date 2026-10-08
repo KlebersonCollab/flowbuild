@@ -14,7 +14,7 @@
 | [x] | TASK-02 | feat | Implement DiscordWebhookComponent with 204 No Content support, embed formatting, and error resilience | `backend/src/backend/app/components/builtins/actions.py`, `backend/src/backend/app/components/builtins/__init__.py` | TASK-01 | pytest 101 passed in backend/ (7/7 Discord tests passing, 0 regressions) |
 | [x] | TASK-03 | test | Add frontend unit tests verifying DiscordWebhookComponent schema, ports, and palette display | `frontend/tests/discord_notification.test.ts` | TASK-02 | vitest 4 passed in tests/discord_notification.test.ts |
 | [x] | TASK-04 | feat | Update CustomNode and ComponentPalette with MessageCircle icon and Blurple styling for Discord | `frontend/src/components/CustomNode.vue`, `frontend/src/components/ComponentPalette.vue` | TASK-03 | vitest 97 passed, vue build passed, MessageCircle icon & Blurple styling applied |
-| [x] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | pytest 101 passed, vitest 97 passed, vue build passed, verify-sdd-integrity passed |
+| [x] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Commit ce22610, pytest 101 passed, vitest 97 passed, vue build passed, verify-sdd-integrity passed |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).
