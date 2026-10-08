@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Database & Storage Components (ADR 0029: KeyValueStoreComponent) - Banco de Dados & Armazenamento.
-- **Progress**: DatabaseQueryComponent (ADR 0028) fully implemented and verified (139 Pytest tests, 121 Vitest tests), committed at 5e61f07 with Database icon and Teal styling.
-- **Next Steps**: Implement KeyValueStoreComponent (ADR 0029) for cross-execution key-value state persistence (get, set, delete, list keys, increment).
+- **Current Task**: Flow Control & Reliability Components (ADR 0030: LoopIteratorComponent) - Controle de Fluxo & Confiabilidade.
+- **Progress**: Cluster 3 (Banco de Dados & Armazenamento) 100% COMPLETE: DatabaseQueryComponent (ADR 0028) and KeyValueStoreComponent (ADR 0029 - committed at c8ee581) fully implemented and verified (145 Pytest tests, 125 Vitest tests passing).
+- **Next Steps**: Implement LoopIteratorComponent (ADR 0030) for batched or item-by-item sequential iteration over collections without violating DAG invariants.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0029 (Key-Value Store Component for Cross-Execution State and Counters)**: Introduced native `KeyValueStoreComponent` in the Storage category backed by a dedicated `kv_store` table in `DatabaseManager`, supporting `get`, `set`, `delete`, `increment`, and `list` operations, namespace isolation, type preservation (JSON, numbers, booleans, strings), `HardDrive` icon, and Teal styling.
 - **2026-10-07 - ADR 0028 (Database Query Component for SQL Execution and Storage)**: Introduced native `DatabaseQueryComponent` in the Storage category supporting parameterized SQL queries via SQLAlchemy (`text(query)`), safe dictionary binding (`:param`), configurable fetch modes (`"all"`, `"one"`, `"none"`), connection fallback to `db_manager.engine` or custom database URLs, non-blocking execution via `asyncio.to_thread`, `Database` icon, and Teal styling.
 - **2026-10-07 - ADR 0027 (CSV Parser Component for Delimited Data Serialization and Parsing)**: Introduced native `CsvParserComponent` in the Transform category supporting bidirectional CSV parsing (CSV string to list of dicts) and generation (JSON list to CSV string), configurable delimiters, header handling, empty line skipping, custom column ordering, `FileSpreadsheet` icon, and Emerald styling.
 - **2026-10-07 - ADR 0026 (Data Aggregator Component for Collection Metrics & Grouping)**: Introduced native `DataAggregatorComponent` in the Transform category supporting mathematical and statistical aggregations (`sum`, `avg`, `min`, `max`, `count`, `concat`, `all`), `group_by` partitioning, safe numeric conversion, `Calculator` icon, and Emerald styling.
