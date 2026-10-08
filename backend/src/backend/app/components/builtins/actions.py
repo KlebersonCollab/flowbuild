@@ -6,6 +6,7 @@ import httpx
 from backend.app.components.base import BaseComponent
 from backend.app.components.inputs import (
     BaseInput,
+    BoolInput,
     CodeInput,
     DictInput,
     IntInput,
@@ -1003,6 +1004,181 @@ class DiscordWebhookComponent(BaseComponent):
 
     async def get_response(self) -> str:
         return self._response
+
+
+class TelegramWebhookComponent(BaseComponent):
+    name: ClassVar[str] = "TelegramWebhookComponent"
+    display_name: ClassVar[str] = "Telegram Notification"
+    category: ClassVar[str] = "Actions"
+    description: ClassVar[str] = (
+        "Sends messages, alerts, or formatted notifications to Telegram chats or channels via Telegram Bot API."
+    )
+    icon: ClassVar[str] = "send"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        StrInput(
+            name="bot_token",
+            label="Bot Token",
+            placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ...",
+            required=True,
+        ),
+        StrInput(
+            name="chat_id",
+            label="Chat ID",
+            placeholder="@channel_username or -1001234567890",
+            required=True,
+        ),
+        StrInput(
+            name="message",
+            label="Message Text",
+            placeholder="Message text (supports HTML/Markdown & {{VARIABLES}})",
+            required=True,
+            default="",
+        ),
+        SelectInput(
+            name="parse_mode",
+            label="Parse Mode",
+            options=["HTML", "MarkdownV2", "Markdown", "None"],
+            default="HTML",
+        ),
+        BoolInput(
+            name="disable_web_page_preview",
+            label="Disable Link Previews",
+            default=False,
+        ),
+        BoolInput(
+            name="disable_notification",
+            label="Silent Notification",
+            default=False,
+        ),
+        IntInput(
+            name="timeout",
+            label="Timeout (seconds)",
+            default=15,
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="success", label="Success", type="bool", method="get_success"),
+        Output(name="status_code", label="Status Code", type="int", method="get_status_code"),
+        Output(name="response", label="Response", type="str", method="get_response"),
+        Output(name="message_id", label="Message ID", type="int", method="get_message_id"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._success: bool = False
+        self._status_code: int = 0
+        self._response: str = ""
+        self._message_id: int = 0
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.send_notification()
+
+    async def send_notification(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        bot_token = str(inp.get("bot_token") or "").strip()
+        chat_id = str(inp.get("chat_id") or "").strip()
+        message = str(inp.get("message") or "").strip()
+        parse_mode = str(inp.get("parse_mode") or "HTML").strip()
+        disable_web_page_preview = bool(inp.get("disable_web_page_preview", False))
+        disable_notification = bool(inp.get("disable_notification", False))
+        timeout = int(inp.get("timeout") or 15)
+
+        if not bot_token:
+            self._success = False
+            self._status_code = 0
+            self._response = "bot_token is required"
+            self._message_id = 0
+            return {
+                "success": self._success,
+                "status_code": self._status_code,
+                "response": self._response,
+                "message_id": self._message_id,
+            }
+
+        if not chat_id:
+            self._success = False
+            self._status_code = 0
+            self._response = "chat_id is required"
+            self._message_id = 0
+            return {
+                "success": self._success,
+                "status_code": self._status_code,
+                "response": self._response,
+                "message_id": self._message_id,
+            }
+
+        if not message:
+            self._success = False
+            self._status_code = 0
+            self._response = "message is required"
+            self._message_id = 0
+            return {
+                "success": self._success,
+                "status_code": self._status_code,
+                "response": self._response,
+                "message_id": self._message_id,
+            }
+
+        endpoint = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+        payload: dict[str, Any] = {
+            "chat_id": chat_id,
+            "text": message,
+        }
+
+        if parse_mode and parse_mode != "None":
+            payload["parse_mode"] = parse_mode
+        if disable_web_page_preview:
+            payload["disable_web_page_preview"] = True
+        if disable_notification:
+            payload["disable_notification"] = True
+
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.post(endpoint, json=payload)
+                self._status_code = resp.status_code
+                self._response = resp.text
+
+                msg_id = 0
+                is_ok = False
+                try:
+                    data = resp.json()
+                    is_ok = bool(data.get("ok", False))
+                    if isinstance(data.get("result"), dict):
+                        msg_id = int(data["result"].get("message_id", 0))
+                except Exception:
+                    is_ok = resp.status_code == 200
+
+                self._success = is_ok and (resp.status_code == 200)
+                self._message_id = msg_id
+        except Exception as e:
+            self._success = False
+            self._status_code = 0
+            self._response = str(e)
+            self._message_id = 0
+
+        return {
+            "success": self._success,
+            "status_code": self._status_code,
+            "response": self._response,
+            "message_id": self._message_id,
+        }
+
+    async def get_success(self) -> bool:
+        return self._success
+
+    async def get_status_code(self) -> int:
+        return self._status_code
+
+    async def get_response(self) -> str:
+        return self._response
+
+    async def get_message_id(self) -> int:
+        return self._message_id
+
 
 
 

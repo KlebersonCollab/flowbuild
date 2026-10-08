@@ -18,7 +18,8 @@ import {
   GitFork,
   Filter,
   MessageSquare,
-  MessageCircle
+  MessageCircle,
+  Send
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -145,6 +146,17 @@ const categoryMeta = computed(() => {
       border: 'border-[#5865F2]/30',
       badge: 'bg-[#5865F2]/15 text-[#828fff] border-[#5865F2]/30',
       dot: 'bg-[#5865F2]'
+    }
+  }
+
+  if (name.includes('telegram')) {
+    return {
+      icon: Send,
+      bg: 'bg-sky-500/10',
+      text: 'text-sky-400',
+      border: 'border-sky-500/30',
+      badge: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+      dot: 'bg-sky-400'
     }
   }
 
