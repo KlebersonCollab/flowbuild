@@ -17,7 +17,8 @@ import {
   Filter,
   MessageSquare,
   MessageCircle,
-  Send
+  Send,
+  Mail
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useFlowStore } from '../stores/flowStore'
@@ -56,6 +57,7 @@ function getNodeIcon(comp: ComponentDefinition) {
   const cat = comp.category.toLowerCase()
 
   if (name.includes('telegram')) return Send
+  if (name.includes('email') || name.includes('mail')) return Mail
   if (name.includes('webhook')) return Radio
   if (cat.includes('trigger') || name.includes('trigger')) return Zap
   if (name.includes('delay') || name.includes('sleep') || name.includes('await') || name.includes('timer')) return Clock
@@ -74,6 +76,7 @@ function getNodeIconColor(comp: ComponentDefinition) {
   const cat = comp.category.toLowerCase()
 
   if (name.includes('telegram')) return 'text-sky-400 bg-sky-500/10 border-sky-500/20'
+  if (name.includes('email') || name.includes('mail')) return 'text-violet-400 bg-violet-500/10 border-violet-500/20'
   if (name.includes('webhook')) return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
   if (cat.includes('trigger') || name.includes('trigger')) return 'text-amber-400 bg-amber-500/10 border-amber-500/20'
   if (name.includes('delay') || name.includes('sleep') || name.includes('await') || name.includes('timer')) return 'text-amber-400 bg-amber-500/10 border-amber-500/20'

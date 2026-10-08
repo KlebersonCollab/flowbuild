@@ -19,7 +19,8 @@ import {
   Filter,
   MessageSquare,
   MessageCircle,
-  Send
+  Send,
+  Mail
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -157,6 +158,17 @@ const categoryMeta = computed(() => {
       border: 'border-sky-500/30',
       badge: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
       dot: 'bg-sky-400'
+    }
+  }
+
+  if (name.includes('email') || name.includes('mail')) {
+    return {
+      icon: Mail,
+      bg: 'bg-violet-500/10',
+      text: 'text-violet-400',
+      border: 'border-violet-500/30',
+      badge: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
+      dot: 'bg-violet-400'
     }
   }
 

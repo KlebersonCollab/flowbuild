@@ -1,6 +1,7 @@
 from backend.app.components.builtins.actions import (
     DataFilterComponent,
     DiscordWebhookComponent,
+    EmailNotificationComponent,
     HttpRequestComponent,
     JsonTransformComponent,
     PaginatedHttpComponent,
@@ -37,6 +38,7 @@ def register_all_builtins() -> None:
     registry.register(SlackWebhookComponent)
     registry.register(DiscordWebhookComponent)
     registry.register(TelegramWebhookComponent)
+    registry.register(EmailNotificationComponent)
     registry.register(IfConditionComponent)
     registry.register(DelayComponent)
     registry.register(SwitchNodeComponent)
@@ -48,6 +50,7 @@ __all__ = [
     "DataFilterComponent",
     "DelayComponent",
     "DiscordWebhookComponent",
+    "EmailNotificationComponent",
     "HttpRequestComponent",
     "IfConditionComponent",
     "JsonTransformComponent",

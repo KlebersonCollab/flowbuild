@@ -1,4 +1,7 @@
 import asyncio
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import smtplib
 from typing import Any, ClassVar
 
 import httpx
@@ -1178,6 +1181,239 @@ class TelegramWebhookComponent(BaseComponent):
 
     async def get_message_id(self) -> int:
         return self._message_id
+
+
+class EmailNotificationComponent(BaseComponent):
+    name: ClassVar[str] = "EmailNotificationComponent"
+    display_name: ClassVar[str] = "Email Notification"
+    category: ClassVar[str] = "Actions"
+    description: ClassVar[str] = (
+        "Sends transactional emails and alerts via standard SMTP with HTML and plain text support."
+    )
+    icon: ClassVar[str] = "mail"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        StrInput(
+            name="smtp_host",
+            label="SMTP Host",
+            placeholder="smtp.gmail.com or smtp.sendgrid.net",
+            required=True,
+        ),
+        IntInput(
+            name="smtp_port",
+            label="SMTP Port",
+            default=587,
+        ),
+        StrInput(
+            name="smtp_user",
+            label="SMTP Username",
+            placeholder="apikey or user@example.com",
+            default="",
+        ),
+        StrInput(
+            name="smtp_password",
+            label="SMTP Password / Key",
+            placeholder="password or api_key",
+            default="",
+        ),
+        BoolInput(
+            name="use_tls",
+            label="Use STARTTLS (Port 587)",
+            default=True,
+        ),
+        BoolInput(
+            name="use_ssl",
+            label="Use SSL/TLS (Port 465)",
+            default=False,
+        ),
+        StrInput(
+            name="from_email",
+            label="From Email",
+            placeholder="alerts@example.com or System <alerts@example.com>",
+            required=True,
+        ),
+        StrInput(
+            name="to_email",
+            label="To Email(s)",
+            placeholder="recipient@example.com, team@example.com",
+            required=True,
+        ),
+        StrInput(
+            name="subject",
+            label="Subject",
+            placeholder="Notification Subject (supports {{VARIABLES}})",
+            required=True,
+        ),
+        StrInput(
+            name="body_html",
+            label="HTML Body",
+            placeholder="<p>Formatted HTML email message</p>",
+            default="",
+        ),
+        StrInput(
+            name="body_text",
+            label="Plain Text Body",
+            placeholder="Fallback plain text email message",
+            default="",
+        ),
+        IntInput(
+            name="timeout",
+            label="Timeout (seconds)",
+            default=20,
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="success", label="Success", type="bool", method="get_success"),
+        Output(name="status_code", label="Status Code", type="int", method="get_status_code"),
+        Output(name="response", label="Response", type="str", method="get_response"),
+        Output(name="recipients_count", label="Recipients Count", type="int", method="get_recipients_count"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._success: bool = False
+        self._status_code: int = 0
+        self._response: str = ""
+        self._recipients_count: int = 0
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.send_email()
+
+    async def send_email(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        smtp_host = str(inp.get("smtp_host") or "").strip()
+        smtp_port = int(inp.get("smtp_port") or 587)
+        smtp_user = str(inp.get("smtp_user") or "").strip()
+        smtp_password = str(inp.get("smtp_password") or "").strip()
+        use_tls = bool(inp.get("use_tls", True))
+        use_ssl = bool(inp.get("use_ssl", False))
+        from_email = str(inp.get("from_email") or "").strip()
+        to_email = str(inp.get("to_email") or "").strip()
+        subject = str(inp.get("subject") or "").strip()
+        body_html = str(inp.get("body_html") or "").strip()
+        body_text = str(inp.get("body_text") or "").strip()
+        timeout = int(inp.get("timeout") or 20)
+
+        if not smtp_host:
+            self._success = False
+            self._status_code = 0
+            self._response = "smtp_host is required"
+            self._recipients_count = 0
+            return self._build_result()
+
+        if not from_email:
+            self._success = False
+            self._status_code = 0
+            self._response = "from_email is required"
+            self._recipients_count = 0
+            return self._build_result()
+
+        if not to_email:
+            self._success = False
+            self._status_code = 0
+            self._response = "to_email is required"
+            self._recipients_count = 0
+            return self._build_result()
+
+        if not subject:
+            self._success = False
+            self._status_code = 0
+            self._response = "subject is required"
+            self._recipients_count = 0
+            return self._build_result()
+
+        if not body_html and not body_text:
+            self._success = False
+            self._status_code = 0
+            self._response = "At least one of body_html or body_text is required"
+            self._recipients_count = 0
+            return self._build_result()
+
+        recipients = [addr.strip() for addr in to_email.split(",") if addr.strip()]
+        if not recipients:
+            self._success = False
+            self._status_code = 0
+            self._response = "No valid recipient email addresses found in to_email"
+            self._recipients_count = 0
+            return self._build_result()
+
+        def _send_sync() -> tuple[bool, int, str]:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = from_email
+            msg["To"] = ", ".join(recipients)
+
+            if body_text:
+                try:
+                    body_text.encode("ascii")
+                    msg.attach(MIMEText(body_text, "plain"))
+                except UnicodeEncodeError:
+                    msg.attach(MIMEText(body_text, "plain", "utf-8"))
+            if body_html:
+                try:
+                    body_html.encode("ascii")
+                    msg.attach(MIMEText(body_html, "html"))
+                except UnicodeEncodeError:
+                    msg.attach(MIMEText(body_html, "html", "utf-8"))
+
+            server = None
+            try:
+                if use_ssl:
+                    server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=timeout)
+                else:
+                    server = smtplib.SMTP(smtp_host, smtp_port, timeout=timeout)
+                    if use_tls:
+                        server.starttls()
+
+                if smtp_user and smtp_password:
+                    server.login(smtp_user, smtp_password)
+
+                server.sendmail(from_email, recipients, msg.as_string())
+                return True, 250, f"Email sent successfully to {len(recipients)} recipient(s)"
+            finally:
+                if server is not None:
+                    try:
+                        server.quit()
+                    except Exception:
+                        pass
+
+        try:
+            ok, code, message = await asyncio.to_thread(_send_sync)
+            self._success = ok
+            self._status_code = code
+            self._response = message
+            self._recipients_count = len(recipients) if ok else 0
+        except Exception as e:
+            self._success = False
+            self._status_code = 0
+            self._response = str(e)
+            self._recipients_count = 0
+
+        return self._build_result()
+
+    def _build_result(self) -> dict[str, Any]:
+        return {
+            "success": self._success,
+            "status_code": self._status_code,
+            "response": self._response,
+            "recipients_count": self._recipients_count,
+        }
+
+    async def get_success(self) -> bool:
+        return self._success
+
+    async def get_status_code(self) -> int:
+        return self._status_code
+
+    async def get_response(self) -> str:
+        return self._response
+
+    async def get_recipients_count(self) -> int:
+        return self._recipients_count
+
 
 
 
