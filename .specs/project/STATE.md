@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Showcase Workflow Templates for Advanced Logic, Data Filtering and Messaging Nodes (ADR 0021).
-- **Progress**: All 4 new showcase templates implemented, tested (93 Vitest tests, 94 Pytest tests), categorized in TopNav, and verified.
+- **Current Task**: Discord Notification & Webhook Messaging Component (ADR 0022).
+- **Progress**: Discord Webhook Node fully implemented, tested (101 Pytest tests, 97 Vitest tests), integrated with MessageCircle icon and Blurple styling.
 - **Next Steps**: Await user direction for next capabilities or flows.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0022 (Discord Notification & Webhook Messaging Component)**: Introduced native `DiscordWebhookComponent` in the Actions category supporting formatted messages, rich Embed cards, hex-to-decimal color parsing, bot appearance (`username`, `avatar_url`), HTTP 200/204 delivery semantics, `MessageCircle` icon, and Blurple styling.
 - **2026-10-07 - ADR 0021 (Showcase Workflow Templates for Advanced Logic, Data Filtering and Messaging Nodes)**: Expanded template library with 4 production-grade showcase workflows (`switch_router_flow`, `data_filter_alert_flow`, `delay_polling_flow`, `etl_pagination_filter_flow`), categorized TopNav dropdown into 3 semantic sections (Básicos, Lógica & Controle, Dados & Alertas) with Linear dark styling, and verified node topology.
 - **2026-10-07 - ADR 0020 (Slack Notification & Webhook Messaging Component)**: Introduced native `SlackWebhookComponent` in the Actions category supporting formatted messages, channel overrides, custom bot identity (`username`, `icon_emoji`), Block Kit / attachments, async httpx execution, network error resilience, `MessageSquare` icon, and Rose styling.
 - **2026-10-07 - ADR 0019 (Declarative Data Filter Component for Collections and Records)**: Introduced native `DataFilterComponent` in the Transform category supporting declarative comparison operators (`equals`, `contains`, `greater_than`, etc.), collection extraction via `items_path`, custom expressions, dual output branches (`filtered_items` and `discarded_items`), and count telemetry.

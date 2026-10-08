@@ -842,3 +842,167 @@ class SlackWebhookComponent(BaseComponent):
         return self._response
 
 
+class DiscordWebhookComponent(BaseComponent):
+    name: ClassVar[str] = "DiscordWebhookComponent"
+    display_name: ClassVar[str] = "Discord Notification"
+    category: ClassVar[str] = "Actions"
+    description: ClassVar[str] = "Sends formatted messages, embeds, and alerts to Discord channels via Webhooks."
+    icon: ClassVar[str] = "message-circle"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        StrInput(
+            name="webhook_url",
+            label="Webhook URL",
+            placeholder="https://discord.com/api/webhooks/...",
+            required=True,
+        ),
+        StrInput(
+            name="content",
+            label="Message Content",
+            placeholder="Message text (supports markdown & {{VARIABLES}})",
+            default="",
+        ),
+        StrInput(
+            name="username",
+            label="Bot Username",
+            placeholder="FlowBuild Bot",
+            default="FlowBuild Bot",
+        ),
+        StrInput(
+            name="avatar_url",
+            label="Avatar Image URL",
+            placeholder="https://example.com/avatar.png",
+            default="",
+        ),
+        StrInput(
+            name="embed_title",
+            label="Embed Card Title",
+            placeholder="Card title (optional)",
+            default="",
+        ),
+        StrInput(
+            name="embed_description",
+            label="Embed Card Description",
+            placeholder="Detailed embed description",
+            default="",
+        ),
+        StrInput(
+            name="embed_color",
+            label="Embed Accent Color",
+            placeholder="#5865F2 or 5814783",
+            default="5814783",
+        ),
+        DictInput(
+            name="embeds",
+            label="Custom Embeds (JSON array)",
+            default=None,
+        ),
+        IntInput(
+            name="timeout",
+            label="Timeout (seconds)",
+            default=15,
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="success", label="Success", type="bool", method="get_success"),
+        Output(name="status_code", label="Status Code", type="int", method="get_status_code"),
+        Output(name="response", label="Response", type="str", method="get_response"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._success: bool = False
+        self._status_code: int = 0
+        self._response: str = ""
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.send_notification()
+
+    async def send_notification(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        webhook_url = str(inp.get("webhook_url") or "").strip()
+        content = str(inp.get("content") or "").strip()
+        username = str(inp.get("username") or "FlowBuild Bot").strip()
+        avatar_url = str(inp.get("avatar_url") or "").strip()
+        embed_title = str(inp.get("embed_title") or "").strip()
+        embed_description = str(inp.get("embed_description") or "").strip()
+        embed_color_raw = str(inp.get("embed_color") or "5814783").strip()
+        custom_embeds = inp.get("embeds")
+        timeout = int(inp.get("timeout") or 15)
+
+        if not webhook_url:
+            self._success = False
+            self._status_code = 0
+            self._response = "webhook_url is required"
+            return {"success": self._success, "status_code": self._status_code, "response": self._response}
+
+        has_embed = bool(embed_title or embed_description or custom_embeds)
+        if not content and not has_embed:
+            self._success = False
+            self._status_code = 0
+            self._response = "content or embed is required"
+            return {"success": self._success, "status_code": self._status_code, "response": self._response}
+
+        payload: dict[str, Any] = {}
+        if content:
+            payload["content"] = content
+        if username:
+            payload["username"] = username
+        if avatar_url:
+            payload["avatar_url"] = avatar_url
+
+        if custom_embeds:
+            if isinstance(custom_embeds, list):
+                payload["embeds"] = custom_embeds
+            elif isinstance(custom_embeds, dict):
+                payload["embeds"] = [custom_embeds]
+        elif embed_title or embed_description:
+            color_int = 5814783
+            try:
+                if embed_color_raw.startswith("#"):
+                    color_int = int(embed_color_raw.lstrip("#"), 16)
+                elif embed_color_raw.startswith("0x"):
+                    color_int = int(embed_color_raw, 16)
+                else:
+                    color_int = int(embed_color_raw)
+            except Exception:
+                color_int = 5814783
+
+            embed_obj: dict[str, Any] = {"color": color_int}
+            if embed_title:
+                embed_obj["title"] = embed_title
+            if embed_description:
+                embed_obj["description"] = embed_description
+            payload["embeds"] = [embed_obj]
+
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.post(webhook_url, json=payload)
+                self._status_code = resp.status_code
+                self._response = resp.text if resp.text else "ok"
+                self._success = resp.status_code in (200, 204)
+        except Exception as e:
+            self._success = False
+            self._status_code = 0
+            self._response = str(e)
+
+        return {
+            "success": self._success,
+            "status_code": self._status_code,
+            "response": self._response,
+        }
+
+    async def get_success(self) -> bool:
+        return self._success
+
+    async def get_status_code(self) -> int:
+        return self._status_code
+
+    async def get_response(self) -> str:
+        return self._response
+
+
+

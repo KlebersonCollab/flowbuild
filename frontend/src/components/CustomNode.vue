@@ -17,7 +17,8 @@ import {
   Clock,
   GitFork,
   Filter,
-  MessageSquare
+  MessageSquare,
+  MessageCircle
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -133,6 +134,17 @@ const categoryMeta = computed(() => {
       border: 'border-indigo-500/30',
       badge: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
       dot: 'bg-indigo-400'
+    }
+  }
+
+  if (name.includes('discord')) {
+    return {
+      icon: MessageCircle,
+      bg: 'bg-[#5865F2]/10',
+      text: 'text-[#828fff]',
+      border: 'border-[#5865F2]/30',
+      badge: 'bg-[#5865F2]/15 text-[#828fff] border-[#5865F2]/30',
+      dot: 'bg-[#5865F2]'
     }
   }
 
