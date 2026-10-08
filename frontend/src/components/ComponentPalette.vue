@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Plus,
   Boxes,
-  Clock
+  Clock,
+  GitFork
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useFlowStore } from '../stores/flowStore'
@@ -53,6 +54,7 @@ function getNodeIcon(comp: ComponentDefinition) {
   if (name.includes('webhook')) return Radio
   if (cat.includes('trigger') || name.includes('trigger')) return Zap
   if (name.includes('delay') || name.includes('sleep') || name.includes('await') || name.includes('timer')) return Clock
+  if (name.includes('switch') || name.includes('router')) return GitFork
   if (name.includes('http') || name.includes('request')) return Globe
   if (name.includes('python') || name.includes('script')) return Terminal
   if (cat.includes('transform') || name.includes('json')) return FileCode
@@ -66,6 +68,7 @@ function getNodeIconColor(comp: ComponentDefinition) {
   if (name.includes('webhook')) return 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
   if (cat.includes('trigger') || name.includes('trigger')) return 'text-amber-400 bg-amber-500/10 border-amber-500/20'
   if (name.includes('delay') || name.includes('sleep') || name.includes('await') || name.includes('timer')) return 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+  if (name.includes('switch') || name.includes('router')) return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
   if (name.includes('http') || name.includes('request')) return 'text-blue-400 bg-blue-500/10 border-blue-500/20'
   if (name.includes('python') || name.includes('script')) return 'text-purple-400 bg-purple-500/10 border-purple-500/20'
   if (cat.includes('transform') || name.includes('json')) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'

@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Completed Delay / Sleep Node Component (`DelayComponent`) (ADR 0017).
-- **Progress**: 100% (All 5 tasks in tasks.md verified complete, 77 Pytest & 75 Vitest passing, Vue build clean, SDD integrity 100%, Spec drift 0%).
-- **Next Steps**: Ready for production deployment and visual exploration.
+- **Current Task**: Implementation of Switch / Router Node Component (`SwitchNodeComponent`) (ADR 0018).
+- **Progress**: Planning Phase Completed (ADR 0018 accepted, plan.md, spec.md, tasks.md approved, SDD integrity verified).
+- **Next Steps**: Execute atomic tasks TASK-01 through TASK-05 via sdd-executor.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0018 (Multi-Branch Switch Routing Component and Generalized Branch Skipping)**: Introduced native `SwitchNodeComponent` in the Logic category with multi-way routing (`case_1`, `case_2`, `case_3`, `default_branch`), generalized branch skipping in `FlowRunner`, `GitFork` icon, and Indigo Linear dark styling.
 - **2026-10-07 - ADR 0017 (Delay and Sleep Node Component for Flow Execution)**: Introduced native `DelayComponent` in the Logic category with non-blocking `asyncio.sleep`, configurable duration (`delay`) and units (`seconds`, `milliseconds`, `minutes`), transparent payload pass-through to output handle `data`, `waited_seconds` telemetry output, and inline canvas number input controls in `CustomNode.vue`.
 - **2026-10-07 - ADR 0016 (Canonical Showcase README & Visual Documentation Engine)**: Created production-grade GitHub showcase README.md with Linear-dark aesthetics, Mermaid architecture diagram, component matrix, quickstart guide, and 4 real 1080p screenshots captured via automated headless Chrome engine (`capture-screenshots.mjs`). Included open-source MIT License.
 - **2026-10-07 - ADR 0015 (Variable Environment Scoping and Target Environment Selection)**: Added `environment` dropdown selector (`"current"`, `"all"`, `"dev"`, `"qa"`, `"prd"`, default `"current"`) to `VariableComponent`. Allows workflows to save or retrieve variables targeting the active execution environment (`current`), universally (`all`), or specifically to a desired deployment stage (`dev`, `qa`, `prd`) in both `mode: "get"` and `mode: "set"`.

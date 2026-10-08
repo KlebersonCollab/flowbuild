@@ -203,7 +203,14 @@ class FlowRunner:
                 for edge in incoming:
                     if edge.source in self.context.skipped:
                         continue
-                    if edge.source_handle in ["true_branch", "false_branch"]:
+                    if edge.source_handle in [
+                        "true_branch",
+                        "false_branch",
+                        "case_1",
+                        "case_2",
+                        "case_3",
+                        "default_branch",
+                    ]:
                         has_conditional_edge = True
                         src_res = self.context.results.get(edge.source)
                         if isinstance(src_res, dict) and src_res.get(edge.source_handle) is None:

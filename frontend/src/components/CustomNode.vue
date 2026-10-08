@@ -14,7 +14,8 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
-  Clock
+  Clock,
+  GitFork
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -108,6 +109,17 @@ const categoryMeta = computed(() => {
       border: 'border-amber-500/30',
       badge: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
       dot: 'bg-amber-400'
+    }
+  }
+
+  if (name.includes('switch') || name.includes('router')) {
+    return {
+      icon: GitFork,
+      bg: 'bg-indigo-500/10',
+      text: 'text-indigo-400',
+      border: 'border-indigo-500/30',
+      badge: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+      dot: 'bg-indigo-400'
     }
   }
 
