@@ -14,7 +14,7 @@
 | [x] | TASK-02 | feat | Implement DataFilterComponent with declarative comparison operators and item extraction | `backend/src/backend/app/components/builtins/actions.py`, `backend/src/backend/app/components/builtins/__init__.py` | TASK-01 | pytest 88 passed (6/6 DataFilter tests passing, 0 regressions) |
 | [x] | TASK-03 | test | Add frontend unit tests verifying DataFilterComponent schema, ports, and palette display | `frontend/tests/data_filter.test.ts` | TASK-02 | vitest 4 passed in tests/data_filter.test.ts |
 | [x] | TASK-04 | feat | Update CustomNode and ComponentPalette with Filter icon and Emerald styling for Data Filter | `frontend/src/components/CustomNode.vue`, `frontend/src/components/ComponentPalette.vue` | TASK-03 | vitest 83 passed, vue build passed, Filter icon & emerald styling applied |
-| [x] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | pytest 88 passed, vitest 83 passed, vue build passed, verify-sdd-integrity passed |
+| [x] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Commit a9ace25, pytest 88 passed, vitest 83 passed, vue build passed, verify-sdd-integrity passed |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).
