@@ -116,6 +116,8 @@ class FlowRunner:
                 # Map into target handle if specified, or source_handle
                 target_key = edge.target_handle or edge.source_handle or "input_data"
                 node_inputs[target_key] = extracted_val
+            elif edge.source in self.context.errors:
+                node_inputs["_upstream_error"] = self.context.errors[edge.source]
 
         # Interpolate variables across inputs
         var_map = self._get_variables_map()
@@ -185,14 +187,25 @@ class FlowRunner:
             incoming = self.builder.get_incoming_edges(node_id)
             has_failed_upstream = any(edge.source in self.context.errors for edge in incoming)
             if has_failed_upstream:
-                self.context.errors[node_id] = "Skipped due to upstream dependency error"
-                self.context.set_skipped(node_id)
-                yield {
-                    "event": "node_skipped",
-                    "node_id": node_id,
-                    "reason": "upstream_error",
-                }
-                continue
+                inputs_raw = node.data.get("inputs", {}) if isinstance(node.data, dict) else {}
+                catch_enabled = inputs_raw.get("catch_upstream_errors", True)
+                if isinstance(catch_enabled, str):
+                    catch_enabled = catch_enabled.lower() not in ("false", "0", "no")
+                else:
+                    catch_enabled = bool(catch_enabled)
+
+                if node.type == "TryCatchComponent" and catch_enabled:
+                    # Reset context status back to running since TryCatch intercepts and handles the error
+                    self.context.status = "running"
+                else:
+                    self.context.errors[node_id] = "Skipped due to upstream dependency error"
+                    self.context.set_skipped(node_id)
+                    yield {
+                        "event": "node_skipped",
+                        "node_id": node_id,
+                        "reason": "upstream_error",
+                    }
+                    continue
 
             # Check conditional branching and skipped upstreams
             if incoming:
@@ -210,6 +223,8 @@ class FlowRunner:
                         "case_2",
                         "case_3",
                         "default_branch",
+                        "success_branch",
+                        "error_branch",
                     ]:
                         has_conditional_edge = True
                         src_res = self.context.results.get(edge.source)

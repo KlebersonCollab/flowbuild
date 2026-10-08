@@ -24,7 +24,8 @@ import {
   FileSpreadsheet,
   Database,
   HardDrive,
-  Repeat
+  Repeat,
+  ShieldAlert
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useFlowStore } from '../stores/flowStore'
@@ -69,6 +70,7 @@ function getNodeIcon(comp: ComponentDefinition) {
   if (name.includes('delay') || name.includes('sleep') || name.includes('await') || name.includes('timer')) return Clock
   if (name.includes('switch') || name.includes('router')) return GitFork
   if (name.includes('loop') || name.includes('iterator') || name.includes('batch')) return Repeat
+  if (name.includes('trycatch') || name.includes('catch') || name.includes('try')) return ShieldAlert
   if (name.includes('filter')) return Filter
   if (name.includes('mapper')) return ArrowRightLeft
   if (name.includes('aggregator')) return Calculator
@@ -93,6 +95,7 @@ function getNodeIconColor(comp: ComponentDefinition) {
   if (cat.includes('trigger') || name.includes('trigger')) return 'text-amber-400 bg-amber-500/10 border-amber-500/20'
   if (name.includes('delay') || name.includes('sleep') || name.includes('await') || name.includes('timer')) return 'text-amber-400 bg-amber-500/10 border-amber-500/20'
   if (name.includes('switch') || name.includes('router') || name.includes('loop') || name.includes('iterator')) return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
+  if (name.includes('trycatch') || name.includes('catch') || name.includes('try')) return 'text-rose-400 bg-rose-500/10 border-rose-500/20'
   if (name.includes('filter') || name.includes('mapper') || name.includes('aggregator') || name.includes('csv')) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
   if (name.includes('database') || name.includes('sql') || cat.includes('storage')) return 'text-teal-400 bg-teal-500/10 border-teal-500/20'
   if (name.includes('discord')) return 'text-[#828fff] bg-[#5865F2]/10 border-[#5865F2]/20'

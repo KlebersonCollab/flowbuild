@@ -4,6 +4,7 @@ from typing import Any, ClassVar
 from backend.app.components.base import BaseComponent
 from backend.app.components.inputs import (
     BaseInput,
+    BoolInput,
     DictInput,
     FloatInput,
     IntInput,
@@ -502,4 +503,112 @@ class LoopIteratorComponent(BaseComponent):
 
     async def get_batch_info(self) -> dict[str, Any]:
         return self._batch_info
+
+
+class TryCatchComponent(BaseComponent):
+    name: ClassVar[str] = "TryCatchComponent"
+    display_name: ClassVar[str] = "Try / Catch"
+    category: ClassVar[str] = "Logic"
+    description: ClassVar[str] = (
+        "Catches upstream failures, provides fallback values, and routes execution between success and error branches."
+    )
+    icon: ClassVar[str] = "shield-alert"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        DictInput(
+            name="input_data",
+            label="Input Data",
+            placeholder="Primary data payload from upstream",
+            default={},
+        ),
+        DictInput(
+            name="fallback_value",
+            label="Fallback Value",
+            placeholder="Fallback data emitted if an error occurs",
+            default={},
+        ),
+        BoolInput(
+            name="catch_upstream_errors",
+            label="Catch Upstream Errors",
+            default=True,
+        ),
+        StrInput(
+            name="error_message",
+            label="Error Message",
+            placeholder="Injected or simulated error description",
+            default="",
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="success_branch", label="Success Branch", type="any", method="get_success_branch"),
+        Output(name="error_branch", label="Error Branch", type="dict", method="get_error_branch"),
+        Output(name="result", label="Result (Success or Fallback)", type="any", method="get_result"),
+        Output(name="has_error", label="Has Error", type="bool", method="get_has_error"),
+        Output(name="error_details", label="Error Details", type="str", method="get_error_details"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._success_branch: Any = None
+        self._error_branch: dict[str, Any] | None = None
+        self._result: Any = None
+        self._has_error: bool = False
+        self._error_details: str = ""
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.process_try_catch()
+
+    async def process_try_catch(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        data = inp.get("input_data", {})
+        fallback = inp.get("fallback_value", {})
+        err_msg = str(
+            inp.get("error_message")
+            or self._raw_inputs.get("_upstream_error")
+            or ""
+        ).strip()
+
+        if err_msg:
+            self._has_error = True
+            self._error_details = err_msg
+            self._result = fallback
+            self._success_branch = None
+            self._error_branch = {
+                "error": err_msg,
+                "fallback": fallback,
+                "caught": True,
+            }
+        else:
+            self._has_error = False
+            self._error_details = ""
+            self._result = data
+            self._success_branch = data
+            self._error_branch = None
+
+        return {
+            "success_branch": self._success_branch,
+            "error_branch": self._error_branch,
+            "result": self._result,
+            "has_error": self._has_error,
+            "error_details": self._error_details,
+        }
+
+    async def get_success_branch(self) -> Any:
+        return self._success_branch
+
+    async def get_error_branch(self) -> dict[str, Any] | None:
+        return self._error_branch
+
+    async def get_result(self) -> Any:
+        return self._result
+
+    async def get_has_error(self) -> bool:
+        return self._has_error
+
+    async def get_error_details(self) -> str:
+        return self._error_details
+
 

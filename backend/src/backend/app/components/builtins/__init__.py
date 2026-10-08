@@ -19,6 +19,7 @@ from backend.app.components.builtins.logic import (
     IfConditionComponent,
     LoopIteratorComponent,
     SwitchNodeComponent,
+    TryCatchComponent,
 )
 from backend.app.components.builtins.triggers import (
     CronTriggerComponent,
@@ -54,6 +55,7 @@ def register_all_builtins() -> None:
     registry.register(DelayComponent)
     registry.register(SwitchNodeComponent)
     registry.register(LoopIteratorComponent)
+    registry.register(TryCatchComponent)
     registry.register(VariableComponent)
 
 
@@ -78,6 +80,7 @@ __all__ = [
     "SlackWebhookComponent",
     "SwitchNodeComponent",
     "TelegramWebhookComponent",
+    "TryCatchComponent",
     "VariableComponent",
     "WebhookTriggerComponent",
     "register_all_builtins",
