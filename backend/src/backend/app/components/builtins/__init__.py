@@ -1,4 +1,5 @@
 from backend.app.components.builtins.actions import (
+    DataFilterComponent,
     HttpRequestComponent,
     JsonTransformComponent,
     PaginatedHttpComponent,
@@ -29,6 +30,7 @@ def register_all_builtins() -> None:
     registry.register(PaginatedHttpComponent)
     registry.register(PythonScriptComponent)
     registry.register(JsonTransformComponent)
+    registry.register(DataFilterComponent)
     registry.register(IfConditionComponent)
     registry.register(DelayComponent)
     registry.register(SwitchNodeComponent)
@@ -37,6 +39,7 @@ def register_all_builtins() -> None:
 
 __all__ = [
     "CronTriggerComponent",
+    "DataFilterComponent",
     "DelayComponent",
     "HttpRequestComponent",
     "IfConditionComponent",

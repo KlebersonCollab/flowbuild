@@ -15,7 +15,8 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  GitFork
+  GitFork,
+  Filter
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -90,6 +91,17 @@ const categoryMeta = computed(() => {
     }
   }
 
+  if (name.includes('filter')) {
+    return {
+      icon: Filter,
+      bg: 'bg-emerald-500/10',
+      text: 'text-emerald-400',
+      border: 'border-emerald-500/30',
+      badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+      dot: 'bg-emerald-400'
+    }
+  }
+
   if (cat.includes('transform') || name.includes('json') || name.includes('transform')) {
     return {
       icon: FileCode,
@@ -137,6 +149,8 @@ function getPortColor(typeStr: string) {
   switch (typeStr.toLowerCase()) {
     case 'dict':
       return '!bg-emerald-500 ring-2 ring-emerald-500/30'
+    case 'list':
+      return '!bg-teal-500 ring-2 ring-teal-500/30'
     case 'str':
       return '!bg-blue-500 ring-2 ring-blue-500/30'
     case 'int':

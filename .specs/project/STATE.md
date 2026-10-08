@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Completed Switch / Router Node Component (`SwitchNodeComponent`) (ADR 0018).
-- **Progress**: 100% (All 5 tasks in tasks.md verified complete, 82 Pytest & 79 Vitest passing, Vue build clean, SDD integrity 100%, Spec drift 0%).
-- **Next Steps**: Ready for DataFilterComponent (Task 2 of 3) or user instructions.
+- **Current Task**: Implementation of Notification & Alert Node (`SlackWebhookComponent`) (ADR 0020).
+- **Progress**: Data Filter Component (ADR 0019) fully verified and completed. Ready to proceed with Notification / Slack Webhook Node.
+- **Next Steps**: Initialize ADR 0020 and create `.specs/features/slack-notification/` specifications.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0019 (Declarative Data Filter Component for Collections and Records)**: Introduced native `DataFilterComponent` in the Transform category supporting declarative comparison operators (`equals`, `contains`, `greater_than`, etc.), collection extraction via `items_path`, custom expressions, dual output branches (`filtered_items` and `discarded_items`), and count telemetry.
 - **2026-10-07 - ADR 0018 (Multi-Branch Switch Routing Component and Generalized Branch Skipping)**: Introduced native `SwitchNodeComponent` in the Logic category with multi-way routing (`case_1`, `case_2`, `case_3`, `default_branch`), generalized branch skipping in `FlowRunner`, `GitFork` icon, and Indigo Linear dark styling.
 - **2026-10-07 - ADR 0017 (Delay and Sleep Node Component for Flow Execution)**: Introduced native `DelayComponent` in the Logic category with non-blocking `asyncio.sleep`, configurable duration (`delay`) and units (`seconds`, `milliseconds`, `minutes`), transparent payload pass-through to output handle `data`, `waited_seconds` telemetry output, and inline canvas number input controls in `CustomNode.vue`.
 - **2026-10-07 - ADR 0016 (Canonical Showcase README & Visual Documentation Engine)**: Created production-grade GitHub showcase README.md with Linear-dark aesthetics, Mermaid architecture diagram, component matrix, quickstart guide, and 4 real 1080p screenshots captured via automated headless Chrome engine (`capture-screenshots.mjs`). Included open-source MIT License.

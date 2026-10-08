@@ -148,6 +148,7 @@ class PythonScriptComponent(BaseComponent):
                     "min": min,
                     "max": max,
                     "sum": sum,
+                    "isinstance": isinstance,
                     "__import__": __import__,
                 }
             }
@@ -460,4 +461,249 @@ class PaginatedHttpComponent(BaseComponent):
             "last_page": self._last_page,
             "summary": self._summary,
         }
+
+
+class DataFilterComponent(BaseComponent):
+    name: ClassVar[str] = "DataFilterComponent"
+    display_name: ClassVar[str] = "Data Filter"
+    category: ClassVar[str] = "Transform"
+    description: ClassVar[str] = (
+        "Filters arrays of objects or data payloads declaratively based on field comparisons or expressions."
+    )
+    icon: ClassVar[str] = "filter"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        BaseInput(
+            name="input_data",
+            label="Incoming Collection",
+            default=[],
+            description="Array of items or dict containing a collection",
+        ),
+        StrInput(
+            name="items_path",
+            label="Items Key / Path",
+            default="",
+            placeholder="e.g. items or results",
+            description="Nested path to extract list if input_data is a dict (dot-separated)",
+        ),
+        StrInput(
+            name="field",
+            label="Field Name",
+            default="status",
+            placeholder="e.g. status or price",
+            description="Property to evaluate on each item",
+        ),
+        SelectInput(
+            name="operator",
+            label="Comparison Operator",
+            options=[
+                "equals",
+                "not_equals",
+                "greater_than",
+                "less_than",
+                "greater_or_equal",
+                "less_or_equal",
+                "contains",
+                "not_contains",
+                "is_empty",
+                "is_not_empty",
+                "expression",
+            ],
+            default="equals",
+        ),
+        StrInput(
+            name="value",
+            label="Comparison Value",
+            default="active",
+            placeholder="Target comparison value",
+        ),
+        StrInput(
+            name="custom_expression",
+            label="Custom Expression",
+            default="item.get('status') == 'active'",
+            placeholder="e.g. item.get('price', 0) > 50",
+            description="Python expression evaluated when operator is 'expression'",
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="filtered_items", label="Filtered Items", type="list", method="get_filtered_items"),
+        Output(name="discarded_items", label="Discarded Items", type="list", method="get_discarded_items"),
+        Output(name="count", label="Count", type="int", method="get_count"),
+        Output(name="total_count", label="Total Count", type="int", method="get_total_count"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._filtered_items: list[Any] = []
+        self._discarded_items: list[Any] = []
+        self._count: int = 0
+        self._total_count: int = 0
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.filter_data()
+
+    async def filter_data(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        raw_data = inp.get("input_data", [])
+        items_path = str(inp.get("items_path", "")).strip()
+        field = str(inp.get("field", "status")).strip()
+        operator = str(inp.get("operator", "equals")).strip()
+        target_value = inp.get("value", "active")
+        custom_expr = str(inp.get("custom_expression", "item.get('status') == 'active'")).strip()
+
+        items: list[Any] = []
+        if isinstance(raw_data, list):
+            items = raw_data
+        elif isinstance(raw_data, dict):
+            if items_path:
+                curr: Any = raw_data
+                for part in items_path.split("."):
+                    if isinstance(curr, dict):
+                        curr = curr.get(part, [])
+                    else:
+                        curr = []
+                        break
+                if isinstance(curr, list):
+                    items = curr
+                else:
+                    items = [curr] if curr is not None else []
+            else:
+                if "items" in raw_data and isinstance(raw_data["items"], list):
+                    items = raw_data["items"]
+                elif "results" in raw_data and isinstance(raw_data["results"], list):
+                    items = raw_data["results"]
+                else:
+                    items = [raw_data]
+        elif raw_data is not None:
+            items = [raw_data]
+
+        def _get_field(item: Any, fld: str) -> Any:
+            if isinstance(item, dict):
+                if "." in fld:
+                    curr = item
+                    for part in fld.split("."):
+                        if isinstance(curr, dict):
+                            curr = curr.get(part)
+                        else:
+                            return None
+                    return curr
+                return item.get(fld)
+            return getattr(item, fld, None)
+
+        def _coerce(val: Any, target_raw: Any) -> tuple[Any, Any]:
+            target_str = str(target_raw).strip()
+            try:
+                if isinstance(val, (int, float)):
+                    return float(val), float(target_str)
+            except Exception:
+                pass
+            if isinstance(val, bool):
+                return val, target_str.lower() in ("true", "1", "yes")
+            return str(val) if val is not None else "", target_str
+
+        def _evaluate_item(item: Any) -> bool:
+            if operator == "expression":
+                safe_globals = {
+                    "__builtins__": {
+                        "bool": bool,
+                        "int": int,
+                        "float": float,
+                        "str": str,
+                        "len": len,
+                        "list": list,
+                        "dict": dict,
+                        "sum": sum,
+                        "max": max,
+                        "min": min,
+                        "isinstance": isinstance,
+                        "True": True,
+                        "False": False,
+                        "None": None,
+                    }
+                }
+                safe_locals = {"item": item}
+                try:
+                    return bool(eval(custom_expr, safe_globals, safe_locals))
+                except Exception:
+                    return False
+
+            val = _get_field(item, field)
+
+            if operator == "is_empty":
+                return val is None or val == "" or val == [] or val == {}
+            if operator == "is_not_empty":
+                return not (val is None or val == "" or val == [] or val == {})
+
+            if operator == "contains":
+                if isinstance(val, (list, tuple, set)):
+                    return str(target_value) in [str(x) for x in val]
+                return str(target_value).lower() in str(val).lower() if val is not None else False
+            if operator == "not_contains":
+                if isinstance(val, (list, tuple, set)):
+                    return str(target_value) not in [str(x) for x in val]
+                return str(target_value).lower() not in str(val).lower() if val is not None else True
+
+            v1, v2 = _coerce(val, target_value)
+            if operator == "equals":
+                return v1 == v2
+            if operator == "not_equals":
+                return v1 != v2
+            if operator == "greater_than":
+                try:
+                    return float(v1) > float(v2)
+                except Exception:
+                    return str(v1) > str(v2)
+            if operator == "less_than":
+                try:
+                    return float(v1) < float(v2)
+                except Exception:
+                    return str(v1) < str(v2)
+            if operator == "greater_or_equal":
+                try:
+                    return float(v1) >= float(v2)
+                except Exception:
+                    return str(v1) >= str(v2)
+            if operator == "less_or_equal":
+                try:
+                    return float(v1) <= float(v2)
+                except Exception:
+                    return str(v1) <= str(v2)
+
+            return False
+
+        filtered: list[Any] = []
+        discarded: list[Any] = []
+
+        for itm in items:
+            if _evaluate_item(itm):
+                filtered.append(itm)
+            else:
+                discarded.append(itm)
+
+        self._filtered_items = filtered
+        self._discarded_items = discarded
+        self._count = len(filtered)
+        self._total_count = len(items)
+
+        return {
+            "filtered_items": filtered,
+            "discarded_items": discarded,
+            "count": self._count,
+            "total_count": self._total_count,
+        }
+
+    async def get_filtered_items(self) -> list[Any]:
+        return self._filtered_items
+
+    async def get_discarded_items(self) -> list[Any]:
+        return self._discarded_items
+
+    async def get_count(self) -> int:
+        return self._count
+
+    async def get_total_count(self) -> int:
+        return self._total_count
 
