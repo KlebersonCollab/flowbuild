@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Data Transformation Components (ADR 0025: DataMapperComponent) - Transformação & Manipulação de Dados.
-- **Progress**: Mensageria & Notificações cluster 100% complete (`TelegramWebhookComponent` committed at f703b05, `EmailNotificationComponent` committed at 74f6a8b). Backend has 114 tests passing, frontend has 105 tests passing.
-- **Next Steps**: Implement DataMapperComponent (ADR 0025) for declarative JSON object mapping, renaming, and transformation.
+- **Current Task**: Data Transformation Components (ADR 0026: DataAggregatorComponent) - Transformação & Manipulação de Dados.
+- **Progress**: DataMapperComponent (ADR 0025) fully implemented and verified (120 Pytest tests, 109 Vitest tests), committed at 4a2e7bd with ArrowRightLeft icon and Emerald styling.
+- **Next Steps**: Implement DataAggregatorComponent (ADR 0026) for collection aggregations (sum, count, avg, min, max, group by).
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0025 (Declarative Data Mapper Component for Record Transformation)**: Introduced native `DataMapperComponent` in the Transform category supporting declarative field mapping, dot-notation path extraction (`data.user.name`), array indexing (`items.0`), items collection traversal, unmapped field passthrough, `ArrowRightLeft` icon, and Emerald styling.
 - **2026-10-07 - ADR 0024 (Email Notification Component - SMTP Delivery)**: Introduced native `EmailNotificationComponent` in the Actions category supporting standard SMTP delivery, STARTTLS (587), SSL/TLS (465), multi-recipient dispatches, HTML and plaintext MIME bodies, non-blocking execution via `asyncio.to_thread`, `Mail` icon, and Violet styling.
 - **2026-10-07 - ADR 0023 (Telegram Notification & Webhook Messaging Component)**: Introduced native `TelegramWebhookComponent` in the Actions category supporting direct messaging via Telegram Bot API (`sendMessage`), HTML/MarkdownV2 formatting, silent alerts, disabled preview flags, `message_id` return, `Send` icon, and Sky blue styling.
 - **2026-10-07 - ADR 0022 (Discord Notification & Webhook Messaging Component)**: Introduced native `DiscordWebhookComponent` in the Actions category supporting formatted messages, rich Embed cards, hex-to-decimal color parsing, bot appearance (`username`, `avatar_url`), HTTP 200/204 delivery semantics, `MessageCircle` icon, and Blurple styling.
