@@ -1551,6 +1551,206 @@ class DataMapperComponent(BaseComponent):
         return self._mapped_count
 
 
+class DataAggregatorComponent(BaseComponent):
+    name: ClassVar[str] = "DataAggregatorComponent"
+    display_name: ClassVar[str] = "Data Aggregator"
+    category: ClassVar[str] = "Transform"
+    description: ClassVar[str] = (
+        "Calculates mathematical and statistical aggregations (sum, avg, min, max, count, concat, group_by) on collections."
+    )
+    icon: ClassVar[str] = "calculator"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        DictInput(
+            name="items",
+            label="Items Collection",
+            placeholder="List of records or object containing items",
+            default=[],
+        ),
+        StrInput(
+            name="items_path",
+            label="Items Array Path",
+            placeholder="Optional path to items list (e.g. 'orders' or 'data.items')",
+            default="",
+        ),
+        StrInput(
+            name="field",
+            label="Target Field Path",
+            placeholder="Field to aggregate (e.g. 'price' or 'user.age')",
+            default="",
+        ),
+        SelectInput(
+            name="operation",
+            label="Aggregation Operation",
+            options=["all", "sum", "avg", "min", "max", "count", "concat"],
+            default="all",
+        ),
+        StrInput(
+            name="group_by",
+            label="Group By Field",
+            placeholder="Optional field to group by (e.g. 'category')",
+            default="",
+        ),
+        StrInput(
+            name="delimiter",
+            label="Concat Delimiter",
+            default=", ",
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="result", label="Result", type="any", method="get_result"),
+        Output(name="summary", label="Summary", type="dict", method="get_summary"),
+        Output(name="count", label="Count", type="int", method="get_count"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._result: Any = 0
+        self._summary: dict[str, Any] = {"count": 0, "sum": 0.0, "avg": 0.0, "min": 0.0, "max": 0.0}
+        self._count: int = 0
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.aggregate_data()
+
+    async def aggregate_data(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        raw_items = inp.get("items")
+        items_path = str(inp.get("items_path") or "").strip()
+        field = str(inp.get("field") or "").strip()
+        op = str(inp.get("operation") or "all").lower().strip()
+        group_by = str(inp.get("group_by") or "").strip()
+        delimiter = str(inp.get("delimiter") or ", ")
+
+        collection = raw_items
+        if items_path:
+            collection = _resolve_nested_path(raw_items, items_path)
+
+        if not isinstance(collection, (list, tuple)):
+            if isinstance(collection, dict):
+                collection = [collection]
+            else:
+                collection = []
+
+        def _extract_val(item: Any, target_field: str) -> Any:
+            if not target_field:
+                return item
+            if isinstance(item, dict):
+                return _resolve_nested_path(item, target_field)
+            return None
+
+        # Group By handling
+        if group_by:
+            groups: dict[str, list[Any]] = {}
+            for item in collection:
+                g_key = str(_extract_val(item, group_by) or "Unknown")
+                groups.setdefault(g_key, []).append(item)
+
+            grouped_results: dict[str, Any] = {}
+            for g_key, g_items in groups.items():
+                g_summary = self._compute_metrics(g_items, field, delimiter)
+                if op == "sum":
+                    grouped_results[g_key] = {"sum": g_summary["sum"], "count": g_summary["count"], "avg": g_summary["avg"]}
+                elif op == "avg":
+                    grouped_results[g_key] = {"avg": g_summary["avg"], "count": g_summary["count"]}
+                elif op == "count":
+                    grouped_results[g_key] = g_summary["count"]
+                else:
+                    grouped_results[g_key] = g_summary
+
+            self._result = grouped_results
+            self._summary = self._compute_metrics(collection, field, delimiter)
+            self._count = len(collection)
+            return {
+                "result": self._result,
+                "summary": self._summary,
+                "count": self._count,
+            }
+
+        summary = self._compute_metrics(collection, field, delimiter)
+        self._summary = summary
+
+        if op == "sum":
+            self._result = summary["sum"]
+            self._count = summary["count"]
+        elif op == "avg":
+            self._result = summary["avg"]
+            self._count = summary["count"]
+        elif op == "min":
+            self._result = summary["min"]
+            self._count = summary["count"]
+        elif op == "max":
+            self._result = summary["max"]
+            self._count = summary["count"]
+        elif op == "count":
+            self._result = summary["count"]
+            self._count = summary["count"]
+        elif op == "concat":
+            self._result = summary.get("concat", "")
+            self._count = summary["count"]
+        else:  # "all"
+            self._result = summary
+            self._count = summary["count"]
+
+        return {
+            "result": self._result,
+            "summary": self._summary,
+            "count": self._count,
+        }
+
+    def _compute_metrics(self, items: list[Any], field: str, delimiter: str) -> dict[str, Any]:
+        numeric_vals: list[float] = []
+        string_vals: list[str] = []
+
+        for item in items:
+            val = item if not field else (
+                _resolve_nested_path(item, field) if isinstance(item, dict) else None
+            )
+            if val is not None:
+                string_vals.append(str(val))
+                try:
+                    if isinstance(val, (int, float)):
+                        numeric_vals.append(float(val))
+                    elif isinstance(val, str) and val.strip():
+                        numeric_vals.append(float(val.strip()))
+                except (ValueError, TypeError):
+                    pass
+
+        if numeric_vals:
+            count_val = len(numeric_vals)
+        elif string_vals:
+            count_val = len(string_vals)
+        else:
+            count_val = len(items)
+
+        total_sum = sum(numeric_vals) if numeric_vals else 0.0
+        avg_val = (total_sum / count_val) if numeric_vals and count_val > 0 else 0.0
+        min_val = min(numeric_vals) if numeric_vals else 0.0
+        max_val = max(numeric_vals) if numeric_vals else 0.0
+        concat_val = delimiter.join(string_vals)
+
+        return {
+            "count": count_val,
+            "sum": total_sum,
+            "avg": avg_val,
+            "min": min_val,
+            "max": max_val,
+            "concat": concat_val,
+        }
+
+    async def get_result(self) -> Any:
+        return self._result
+
+    async def get_summary(self) -> dict[str, Any]:
+        return self._summary
+
+    async def get_count(self) -> int:
+        return self._count
+
+
+
 
 
 

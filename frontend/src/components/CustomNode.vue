@@ -21,7 +21,8 @@ import {
   MessageCircle,
   Send,
   Mail,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Calculator
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -110,6 +111,17 @@ const categoryMeta = computed(() => {
   if (name.includes('mapper')) {
     return {
       icon: ArrowRightLeft,
+      bg: 'bg-emerald-500/10',
+      text: 'text-emerald-400',
+      border: 'border-emerald-500/30',
+      badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+      dot: 'bg-emerald-400'
+    }
+  }
+
+  if (name.includes('aggregator')) {
+    return {
+      icon: Calculator,
       bg: 'bg-emerald-500/10',
       text: 'text-emerald-400',
       border: 'border-emerald-500/30',
