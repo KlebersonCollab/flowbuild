@@ -4,6 +4,7 @@ from backend.app.components.builtins.actions import (
     JsonTransformComponent,
     PaginatedHttpComponent,
     PythonScriptComponent,
+    SlackWebhookComponent,
 )
 from backend.app.components.builtins.logic import (
     DelayComponent,
@@ -31,6 +32,7 @@ def register_all_builtins() -> None:
     registry.register(PythonScriptComponent)
     registry.register(JsonTransformComponent)
     registry.register(DataFilterComponent)
+    registry.register(SlackWebhookComponent)
     registry.register(IfConditionComponent)
     registry.register(DelayComponent)
     registry.register(SwitchNodeComponent)
@@ -47,6 +49,7 @@ __all__ = [
     "ManualTriggerComponent",
     "PaginatedHttpComponent",
     "PythonScriptComponent",
+    "SlackWebhookComponent",
     "SwitchNodeComponent",
     "VariableComponent",
     "WebhookTriggerComponent",

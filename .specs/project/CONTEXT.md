@@ -21,6 +21,7 @@
 - **Delay / Sleep Node (`DelayComponent`)**: A control flow logic component that suspends workflow execution for a specified duration (`delay` with unit: `seconds`, `milliseconds`, `minutes`) using non-blocking asynchronous sleep (`asyncio.sleep`) before transparently forwarding incoming payload data (`input_data`) to downstream nodes.
 - **Switch / Router Node (`SwitchNodeComponent`)**: A multi-branch control flow logic component that routes incoming data to one of several output paths (`case_1`, `case_2`, `case_3`, or `default_branch`) based on expression matching, with cascading branch skipping on unselected handles.
 - **Data Filter Node (`DataFilterComponent`)**: A transform component that filters arrays of items or dictionary payloads declaratively based on field comparison operators (`equals`, `contains`, `greater_than`, etc.) or Python expressions, emitting `filtered_items`, `discarded_items`, and count telemetry.
+- **Slack Notification Node (`SlackWebhookComponent`)**: An action component that sends formatted messages and alerts to Slack channels via Incoming Webhooks, supporting custom bot identity, Block Kit blocks, attachments, variable interpolation, and error resilience.
 
 ---
 

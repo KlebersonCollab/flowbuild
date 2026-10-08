@@ -707,3 +707,138 @@ class DataFilterComponent(BaseComponent):
     async def get_total_count(self) -> int:
         return self._total_count
 
+
+class SlackWebhookComponent(BaseComponent):
+    name: ClassVar[str] = "SlackWebhookComponent"
+    display_name: ClassVar[str] = "Slack Notification"
+    category: ClassVar[str] = "Actions"
+    description: ClassVar[str] = "Sends formatted alert messages and notifications to Slack channels via Incoming Webhooks."
+    icon: ClassVar[str] = "message-square"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        StrInput(
+            name="webhook_url",
+            label="Webhook URL",
+            placeholder="https://hooks.slack.com/services/...",
+            required=True,
+        ),
+        StrInput(
+            name="text",
+            label="Message Text",
+            placeholder="Alert text (supports mrkdwn & {{VARIABLES}})",
+            required=True,
+        ),
+        StrInput(
+            name="channel",
+            label="Channel Override",
+            placeholder="#general or @user (optional)",
+            default="",
+        ),
+        StrInput(
+            name="username",
+            label="Bot Username",
+            placeholder="Bot display name",
+            default="FlowBuild Bot",
+        ),
+        StrInput(
+            name="icon_emoji",
+            label="Icon Emoji",
+            placeholder=":robot_face:",
+            default=":robot_face:",
+        ),
+        DictInput(
+            name="blocks",
+            label="Block Kit Blocks (JSON array/dict)",
+            default=None,
+        ),
+        DictInput(
+            name="attachments",
+            label="Attachments (JSON array/dict)",
+            default=None,
+        ),
+        IntInput(
+            name="timeout",
+            label="Timeout (seconds)",
+            default=15,
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="success", label="Success", type="bool", method="get_success"),
+        Output(name="status_code", label="Status Code", type="int", method="get_status_code"),
+        Output(name="response", label="Response", type="str", method="get_response"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._success: bool = False
+        self._status_code: int = 0
+        self._response: str = ""
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.send_notification()
+
+    async def send_notification(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        webhook_url = str(inp.get("webhook_url") or "").strip()
+        text = str(inp.get("text") or "").strip()
+        channel = str(inp.get("channel") or "").strip()
+        username = str(inp.get("username") or "FlowBuild Bot").strip()
+        icon_emoji = str(inp.get("icon_emoji") or ":robot_face:").strip()
+        blocks = inp.get("blocks")
+        attachments = inp.get("attachments")
+        timeout = int(inp.get("timeout") or 15)
+
+        if not webhook_url:
+            self._success = False
+            self._status_code = 0
+            self._response = "webhook_url is required"
+            return {"success": self._success, "status_code": self._status_code, "response": self._response}
+
+        if not text:
+            self._success = False
+            self._status_code = 0
+            self._response = "text is required"
+            return {"success": self._success, "status_code": self._status_code, "response": self._response}
+
+        payload: dict[str, Any] = {"text": text}
+        if channel:
+            payload["channel"] = channel
+        if username:
+            payload["username"] = username
+        if icon_emoji:
+            payload["icon_emoji"] = icon_emoji
+        if blocks:
+            payload["blocks"] = blocks
+        if attachments:
+            payload["attachments"] = attachments
+
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                resp = await client.post(webhook_url, json=payload)
+                self._status_code = resp.status_code
+                self._response = resp.text
+                self._success = resp.status_code == 200 and ("ok" in resp.text.lower())
+        except Exception as e:
+            self._success = False
+            self._status_code = 0
+            self._response = str(e)
+
+        return {
+            "success": self._success,
+            "status_code": self._status_code,
+            "response": self._response,
+        }
+
+    async def get_success(self) -> bool:
+        return self._success
+
+    async def get_status_code(self) -> int:
+        return self._status_code
+
+    async def get_response(self) -> str:
+        return self._response
+
+

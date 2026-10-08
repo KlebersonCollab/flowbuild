@@ -16,7 +16,8 @@ import {
   ChevronUp,
   Clock,
   GitFork,
-  Filter
+  Filter,
+  MessageSquare
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useExecutionStore } from '../stores/executionStore'
@@ -132,6 +133,17 @@ const categoryMeta = computed(() => {
       border: 'border-indigo-500/30',
       badge: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
       dot: 'bg-indigo-400'
+    }
+  }
+
+  if (name.includes('slack') || name.includes('notification')) {
+    return {
+      icon: MessageSquare,
+      bg: 'bg-rose-500/10',
+      text: 'text-rose-400',
+      border: 'border-rose-500/30',
+      badge: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+      dot: 'bg-rose-400'
     }
   }
 

@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Implementation of Notification & Alert Node (`SlackWebhookComponent`) (ADR 0020).
-- **Progress**: Data Filter Component (ADR 0019) fully verified and completed. Ready to proceed with Notification / Slack Webhook Node.
-- **Next Steps**: Initialize ADR 0020 and create `.specs/features/slack-notification/` specifications.
+- **Current Task**: Completed sequence (SwitchNodeComponent ADR 0018, DataFilterComponent ADR 0019, SlackWebhookComponent ADR 0020).
+- **Progress**: All 3 requested components fully planned, implemented, tested with TDD, and integrated into canvas palette & custom nodes with 100% sensor pass rate.
+- **Next Steps**: Await user direction for next capabilities or flows.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0020 (Slack Notification & Webhook Messaging Component)**: Introduced native `SlackWebhookComponent` in the Actions category supporting formatted messages, channel overrides, custom bot identity (`username`, `icon_emoji`), Block Kit / attachments, async httpx execution, network error resilience, `MessageSquare` icon, and Rose styling.
 - **2026-10-07 - ADR 0019 (Declarative Data Filter Component for Collections and Records)**: Introduced native `DataFilterComponent` in the Transform category supporting declarative comparison operators (`equals`, `contains`, `greater_than`, etc.), collection extraction via `items_path`, custom expressions, dual output branches (`filtered_items` and `discarded_items`), and count telemetry.
 - **2026-10-07 - ADR 0018 (Multi-Branch Switch Routing Component and Generalized Branch Skipping)**: Introduced native `SwitchNodeComponent` in the Logic category with multi-way routing (`case_1`, `case_2`, `case_3`, `default_branch`), generalized branch skipping in `FlowRunner`, `GitFork` icon, and Indigo Linear dark styling.
 - **2026-10-07 - ADR 0017 (Delay and Sleep Node Component for Flow Execution)**: Introduced native `DelayComponent` in the Logic category with non-blocking `asyncio.sleep`, configurable duration (`delay`) and units (`seconds`, `milliseconds`, `minutes`), transparent payload pass-through to output handle `data`, `waited_seconds` telemetry output, and inline canvas number input controls in `CustomNode.vue`.
