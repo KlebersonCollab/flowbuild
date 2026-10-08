@@ -14,7 +14,7 @@
 | [x] | TASK-02 | feat | Implement DelayComponent with non-blocking asyncio.sleep and transparent payload pass-through | `backend/src/backend/app/components/builtins/logic.py`, `backend/src/backend/app/components/builtins/__init__.py` | TASK-01 | pytest 77 passed (6/6 DelayComponent tests passing) |
 | [x] | TASK-03 | test | Add frontend unit tests verifying DelayComponent schema, palette inclusion, and numeric input rendering | `frontend/tests/delay_component.test.ts` | TASK-02 | vitest 4 passed in tests/delay_component.test.ts |
 | [x] | TASK-04 | feat | Update CustomNode and ComponentPalette with Clock icon, Amber/Orange badges, and quick inline number input controls | `frontend/src/components/CustomNode.vue`, `frontend/src/components/ComponentPalette.vue` | TASK-03 | vitest 75 passed, vue-tsc and vite build clean |
-| [ ] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Pending sensor run |
+| [x] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Commit `c4fb065` - Pytest 77 passed, Vitest 75 passed, Vue build clean, SDD integrity 100%, Spec drift OK |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).
