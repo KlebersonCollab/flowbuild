@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Email Notification Component (ADR 0024) - Mensageria & Notificações.
-- **Progress**: Telegram Webhook Node (ADR 0023) fully implemented and verified (108 Pytest tests, 101 Vitest tests), committed at f703b05 with Send icon and Sky styling.
-- **Next Steps**: Implement EmailNotificationComponent (ADR 0024) with SMTP delivery and template formatting.
+- **Current Task**: Data Transformation Components (ADR 0025: DataMapperComponent) - Transformação & Manipulação de Dados.
+- **Progress**: Mensageria & Notificações cluster 100% complete (`TelegramWebhookComponent` committed at f703b05, `EmailNotificationComponent` committed at 74f6a8b). Backend has 114 tests passing, frontend has 105 tests passing.
+- **Next Steps**: Implement DataMapperComponent (ADR 0025) for declarative JSON object mapping, renaming, and transformation.
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0024 (Email Notification Component - SMTP Delivery)**: Introduced native `EmailNotificationComponent` in the Actions category supporting standard SMTP delivery, STARTTLS (587), SSL/TLS (465), multi-recipient dispatches, HTML and plaintext MIME bodies, non-blocking execution via `asyncio.to_thread`, `Mail` icon, and Violet styling.
 - **2026-10-07 - ADR 0023 (Telegram Notification & Webhook Messaging Component)**: Introduced native `TelegramWebhookComponent` in the Actions category supporting direct messaging via Telegram Bot API (`sendMessage`), HTML/MarkdownV2 formatting, silent alerts, disabled preview flags, `message_id` return, `Send` icon, and Sky blue styling.
 - **2026-10-07 - ADR 0022 (Discord Notification & Webhook Messaging Component)**: Introduced native `DiscordWebhookComponent` in the Actions category supporting formatted messages, rich Embed cards, hex-to-decimal color parsing, bot appearance (`username`, `avatar_url`), HTTP 200/204 delivery semantics, `MessageCircle` icon, and Blurple styling.
 - **2026-10-07 - ADR 0021 (Showcase Workflow Templates for Advanced Logic, Data Filtering and Messaging Nodes)**: Expanded template library with 4 production-grade showcase workflows (`switch_router_flow`, `data_filter_alert_flow`, `delay_polling_flow`, `etl_pagination_filter_flow`), categorized TopNav dropdown into 3 semantic sections (Básicos, Lógica & Controle, Dados & Alertas) with Linear dark styling, and verified node topology.
