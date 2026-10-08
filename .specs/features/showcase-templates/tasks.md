@@ -13,7 +13,7 @@
 | [x] | TASK-01 | test | Add frontend unit tests verifying all 9 templates in flowStore and template loading | `frontend/tests/showcase_templates.test.ts` | None | vitest 6 passed in tests/showcase_templates.test.ts |
 | [x] | TASK-02 | feat | Implement 4 new showcase templates (switch_router, data_filter_alert, delay_polling, etl_pagination_filter) in flowStore.ts | `frontend/src/stores/flowStore.ts` | TASK-01 | vitest 93 passed (all 9 templates loading nodes and valid edges) |
 | [x] | TASK-03 | feat | Upgrade TopNav.vue templates dropdown with categorized semantic sections and Linear dark badges | `frontend/src/components/TopNav.vue` | TASK-02 | vue build passed, categorized dropdown with 3 sections rendered |
-| [x] | TASK-04 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-03 | pytest 94 passed, vitest 93 passed, vue build passed, verify-sdd-integrity passed |
+| [x] | TASK-04 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-03 | Commit af9fbd8, pytest 94 passed, vitest 93 passed, vue build passed, verify-sdd-integrity passed |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).
