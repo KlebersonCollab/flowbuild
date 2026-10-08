@@ -7,6 +7,7 @@ import smtplib
 from typing import Any, ClassVar
 
 import httpx
+from sqlalchemy import create_engine, text
 
 from backend.app.components.base import BaseComponent
 from backend.app.components.inputs import (
@@ -1924,6 +1925,154 @@ class CsvParserComponent(BaseComponent):
 
     async def get_headers(self) -> list[str]:
         return self._headers
+
+
+class DatabaseQueryComponent(BaseComponent):
+    name: ClassVar[str] = "DatabaseQueryComponent"
+    display_name: ClassVar[str] = "Database Query"
+    category: ClassVar[str] = "Storage"
+    description: ClassVar[str] = (
+        "Executes parameterized SQL queries against SQLite, PostgreSQL, or external databases using SQLAlchemy."
+    )
+    icon: ClassVar[str] = "database"
+
+    inputs: ClassVar[list[BaseInput]] = [
+        StrInput(
+            name="connection_string",
+            label="Database Connection URL",
+            placeholder="e.g. sqlite:///data.db or postgresql://... (leave empty for FlowBuild DB)",
+            default="",
+        ),
+        CodeInput(
+            name="query",
+            label="SQL Query",
+            language="sql",
+            placeholder="SELECT * FROM table WHERE id = :id",
+            default="SELECT 1 as result",
+            required=True,
+        ),
+        DictInput(
+            name="params",
+            label="Query Parameters",
+            placeholder="JSON object with :named parameter bindings",
+            default={},
+        ),
+        SelectInput(
+            name="fetch_mode",
+            label="Fetch Mode",
+            options=["all", "one", "none"],
+            default="all",
+        ),
+        BoolInput(
+            name="auto_commit",
+            label="Auto Commit",
+            default=True,
+        ),
+    ]
+
+    outputs: ClassVar[list[Output]] = [
+        Output(name="data", label="Output Data", type="any", method="get_data"),
+        Output(name="row_count", label="Row Count", type="int", method="get_row_count"),
+        Output(name="columns", label="Columns", type="list", method="get_columns"),
+    ]
+
+    def __init__(self, inputs: dict[str, Any] | None = None):
+        super().__init__(inputs)
+        self._data: Any = []
+        self._row_count: int = 0
+        self._columns: list[str] = []
+
+    async def execute(self, **kwargs: Any) -> dict[str, Any]:
+        if kwargs:
+            self._raw_inputs.update(kwargs)
+        return await self.execute_query()
+
+    async def execute_query(self) -> dict[str, Any]:
+        inp = self.get_inputs()
+        conn_str = str(inp.get("connection_string") or "").strip()
+        query = str(inp.get("query") or "").strip()
+        raw_params = inp.get("params") or {}
+        fetch_mode = str(inp.get("fetch_mode") or "all").lower().strip()
+        auto_commit = bool(inp.get("auto_commit", True))
+
+        if isinstance(raw_params, dict):
+            if "query_params" in raw_params and isinstance(raw_params["query_params"], dict):
+                params = raw_params["query_params"]
+            elif "params" in raw_params and isinstance(raw_params["params"], dict):
+                params = raw_params["params"]
+            else:
+                params = raw_params
+        else:
+            params = {}
+
+        if not query:
+            self._data = []
+            self._row_count = 0
+            self._columns = []
+            return self._build_result()
+
+        def _sync_worker() -> tuple[Any, int, list[str]]:
+            from backend.app.db import db_manager
+
+            engine_to_use = None
+            dispose_needed = False
+            if conn_str:
+                engine_kwargs: dict[str, Any] = {}
+                if conn_str.startswith("sqlite"):
+                    engine_kwargs["connect_args"] = {"check_same_thread": False}
+                engine_to_use = create_engine(conn_str, **engine_kwargs)
+                dispose_needed = True
+            else:
+                engine_to_use = db_manager.engine
+
+            try:
+                with engine_to_use.connect() as conn:
+                    stmt = text(query)
+                    result = conn.execute(stmt, params)
+                    if result.returns_rows and fetch_mode in ("all", "one"):
+                        cols = list(result.keys())
+                        if fetch_mode == "all":
+                            rows = [dict(r._mapping) for r in result.all()]
+                            cnt = len(rows)
+                            out_data = rows
+                        else:
+                            r = result.first()
+                            out_data = dict(r._mapping) if r is not None else None
+                            cnt = 1 if r is not None else 0
+                        if auto_commit:
+                            conn.commit()
+                        return out_data, cnt, cols
+                    else:
+                        cnt = result.rowcount if result.rowcount is not None and result.rowcount >= 0 else 0
+                        if auto_commit:
+                            conn.commit()
+                        return [], cnt, []
+            finally:
+                if dispose_needed and engine_to_use is not None:
+                    engine_to_use.dispose()
+
+        data, count, cols = await asyncio.to_thread(_sync_worker)
+        self._data = data
+        self._row_count = count
+        self._columns = cols
+        return self._build_result()
+
+    def _build_result(self) -> dict[str, Any]:
+        return {
+            "data": self._data,
+            "row_count": self._row_count,
+            "columns": self._columns,
+        }
+
+    async def get_data(self) -> Any:
+        return self._data
+
+    async def get_row_count(self) -> int:
+        return self._row_count
+
+    async def get_columns(self) -> list[str]:
+        return self._columns
+
 
 
 

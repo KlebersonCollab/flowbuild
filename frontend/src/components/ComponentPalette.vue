@@ -21,7 +21,8 @@ import {
   Mail,
   ArrowRightLeft,
   Calculator,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Database
 } from 'lucide-vue-next'
 import { useRegistryStore } from '../stores/registryStore'
 import { useFlowStore } from '../stores/flowStore'
@@ -69,6 +70,7 @@ function getNodeIcon(comp: ComponentDefinition) {
   if (name.includes('mapper')) return ArrowRightLeft
   if (name.includes('aggregator')) return Calculator
   if (name.includes('csv')) return FileSpreadsheet
+  if (name.includes('database') || name.includes('sql') || cat.includes('storage')) return Database
   if (name.includes('discord')) return MessageCircle
   if (name.includes('slack') || name.includes('notification')) return MessageSquare
   if (name.includes('http') || name.includes('request')) return Globe
@@ -88,6 +90,7 @@ function getNodeIconColor(comp: ComponentDefinition) {
   if (name.includes('delay') || name.includes('sleep') || name.includes('await') || name.includes('timer')) return 'text-amber-400 bg-amber-500/10 border-amber-500/20'
   if (name.includes('switch') || name.includes('router')) return 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20'
   if (name.includes('filter') || name.includes('mapper') || name.includes('aggregator') || name.includes('csv')) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+  if (name.includes('database') || name.includes('sql') || cat.includes('storage')) return 'text-teal-400 bg-teal-500/10 border-teal-500/20'
   if (name.includes('discord')) return 'text-[#828fff] bg-[#5865F2]/10 border-[#5865F2]/20'
   if (name.includes('slack') || name.includes('notification')) return 'text-rose-400 bg-rose-500/10 border-rose-500/20'
   if (name.includes('http') || name.includes('request')) return 'text-blue-400 bg-blue-500/10 border-blue-500/20'
