@@ -1,11 +1,12 @@
 # Project State & Context (FlowBuild)
 
 ## 🏁 Session Status
-- **Current Task**: Database & Storage Components (ADR 0028: DatabaseQueryComponent) - Banco de Dados & Armazenamento.
-- **Progress**: Cluster 2 (Transformação & Manipulação de Dados) 100% COMPLETE: DataMapperComponent (ADR 0025), DataAggregatorComponent (ADR 0026), and CsvParserComponent (ADR 0027 - committed at 661acf2) fully implemented and verified (132 Pytest tests, 117 Vitest tests passing).
-- **Next Steps**: Implement DatabaseQueryComponent (ADR 0028) for executing SQL queries against SQLite/PostgreSQL with parameter binding, row serialization, and mutation metrics.
+- **Current Task**: Database & Storage Components (ADR 0029: KeyValueStoreComponent) - Banco de Dados & Armazenamento.
+- **Progress**: DatabaseQueryComponent (ADR 0028) fully implemented and verified (139 Pytest tests, 121 Vitest tests), committed at 5e61f07 with Database icon and Teal styling.
+- **Next Steps**: Implement KeyValueStoreComponent (ADR 0029) for cross-execution key-value state persistence (get, set, delete, list keys, increment).
 
 ## 💡 Decisions Log
+- **2026-10-07 - ADR 0028 (Database Query Component for SQL Execution and Storage)**: Introduced native `DatabaseQueryComponent` in the Storage category supporting parameterized SQL queries via SQLAlchemy (`text(query)`), safe dictionary binding (`:param`), configurable fetch modes (`"all"`, `"one"`, `"none"`), connection fallback to `db_manager.engine` or custom database URLs, non-blocking execution via `asyncio.to_thread`, `Database` icon, and Teal styling.
 - **2026-10-07 - ADR 0027 (CSV Parser Component for Delimited Data Serialization and Parsing)**: Introduced native `CsvParserComponent` in the Transform category supporting bidirectional CSV parsing (CSV string to list of dicts) and generation (JSON list to CSV string), configurable delimiters, header handling, empty line skipping, custom column ordering, `FileSpreadsheet` icon, and Emerald styling.
 - **2026-10-07 - ADR 0026 (Data Aggregator Component for Collection Metrics & Grouping)**: Introduced native `DataAggregatorComponent` in the Transform category supporting mathematical and statistical aggregations (`sum`, `avg`, `min`, `max`, `count`, `concat`, `all`), `group_by` partitioning, safe numeric conversion, `Calculator` icon, and Emerald styling.
 - **2026-10-07 - ADR 0025 (Declarative Data Mapper Component for Record Transformation)**: Introduced native `DataMapperComponent` in the Transform category supporting declarative field mapping, dot-notation path extraction (`data.user.name`), array indexing (`items.0`), items collection traversal, unmapped field passthrough, `ArrowRightLeft` icon, and Emerald styling.
