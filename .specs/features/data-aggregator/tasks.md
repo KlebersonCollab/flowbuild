@@ -10,11 +10,11 @@
 
 | Status | ID | Type | Description | Target Files | Dependencies | Evidence |
 |---|---|---|---|---|---|---|
-| [ ] | TASK-01 | test | Add backend integration tests for DataAggregatorComponent (sum, avg, min, max, count, concat, group_by, null safety, and FlowRunner) | `backend/tests/test_data_aggregator.py` | None | Pending execution |
-| [ ] | TASK-02 | feat | Implement DataAggregatorComponent with mathematical aggregations and grouping in actions.py | `backend/src/backend/app/components/builtins/actions.py`, `backend/src/backend/app/components/builtins/__init__.py` | TASK-01 | Pending execution |
-| [ ] | TASK-03 | test | Add frontend unit tests verifying DataAggregatorComponent schema, ports, and palette display | `frontend/tests/data_aggregator.test.ts` | TASK-02 | Pending execution |
-| [ ] | TASK-04 | feat | Update CustomNode and ComponentPalette with Calculator icon and Emerald styling for Data Aggregator | `frontend/src/components/CustomNode.vue`, `frontend/src/components/ComponentPalette.vue` | TASK-03 | Pending execution |
-| [ ] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Pending execution |
+| [x] | TASK-01 | test | Add backend integration tests for DataAggregatorComponent (sum, avg, min, max, count, concat, group_by, null safety, and FlowRunner) | `backend/tests/test_data_aggregator.py` | None | pytest 6 passed in tests/test_data_aggregator.py |
+| [x] | TASK-02 | feat | Implement DataAggregatorComponent with mathematical aggregations and grouping in actions.py | `backend/src/backend/app/components/builtins/actions.py`, `backend/src/backend/app/components/builtins/__init__.py` | TASK-01 | pytest 126 passed in backend/ (6/6 DataAggregator tests passing, 0 regressions) |
+| [x] | TASK-03 | test | Add frontend unit tests verifying DataAggregatorComponent schema, ports, and palette display | `frontend/tests/data_aggregator.test.ts` | TASK-02 | vitest 4 passed in tests/data_aggregator.test.ts |
+| [x] | TASK-04 | feat | Update CustomNode and ComponentPalette with Calculator icon and Emerald styling for Data Aggregator | `frontend/src/components/CustomNode.vue`, `frontend/src/components/ComponentPalette.vue` | TASK-03 | vitest 113 passed, vue build passed, Calculator icon & Emerald styling applied |
+| [x] | TASK-05 | review | Run full sensor verification (Pytest, Vitest, Vue build, and SDD integrity sensor) | `frontend/`, `backend/`, `.specs/` | TASK-04 | Commit b0b05f2, pytest 126 passed, vitest 113 passed, vue build passed, verify-sdd-integrity passed |
 
 ## Schema Dictionary
 - **Status**: `[ ]` (Pending) | `[x]` (Verified Complete).
